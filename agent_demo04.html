@@ -1336,26 +1336,38 @@
                 }
                 getMemoryContext() {
                     let ctx = "";
-                    const tripKeys = Object.keys(this.tripInfo);
-                    if (tripKeys.length > 0) {
-                        ctx += "已收集的行程信息：\n";
-                        const labels = {
-                            destination: "目的地",
-                            days: "天数",
-                            people: "人数",
-                            budget: "预算",
-                            style: "风格",
-                            health: "健康"
-                        };
-                        tripKeys.forEach(k => {
-                            if (this.tripInfo[k]) {
-                                let v = this.tripInfo[k];
-                                if (k === "budget") v = v.toLocaleString() + "元";
-                                if (k === "days") v = v + "天";
-                                if (k === "people") v = v + "人";
-                                ctx += `- ${labels[k] || k}: ${v}\n`;
-                            }
-                        });
+                    const labels = {
+                        destination: "目的地",
+                        days: "天数",
+                        people: "人数",
+                        budget: "预算",
+                        style: "风格",
+                        health: "健康"
+                    };
+                    const allFields = ["destination", "style", "days", "people", "budget"];
+                    const known = [];
+                    const missing = [];
+                    allFields.forEach(k => {
+                        if (this.tripInfo[k]) {
+                            let v = this.tripInfo[k];
+                            if (k === "budget") v = Number(v).toLocaleString() + "元";
+                            if (k === "days") v = v + "天";
+                            if (k === "people") v = v + "人";
+                            known.push(`${labels[k] || k}: ${v}`);
+                        } else {
+                            missing.push(labels[k] || k);
+                        }
+                    });
+                    if (known.length > 0) {
+                        ctx += "【已确认，禁止再问】\n";
+                        known.forEach(line => { ctx += `  ${line}\n`; });
+                    }
+                    if (missing.length > 0) {
+                        ctx += "【缺少，需按优先级逐一询问】\n";
+                        missing.forEach(line => { ctx += `  ${line}\n`; });
+                    }
+                    if (known.length === 0 && missing.length === 0) {
+                        ctx += "行程信息：尚未收集\n";
                     }
                     const prefKeys = Object.keys(this.preferences);
                     if (prefKeys.length > 0) {
@@ -1558,14 +1570,15 @@
                 update_trip_info(args) {
                     const oldDest = memory.tripInfo.destination;
                     const newDest = args.destination;
-                    // 检测目的地变化 → 归档旧计划，清空聊天
+                    console.log("[update_trip_info] oldDest:", oldDest, "newDest:", newDest, "args:", JSON.stringify(args));
+                    // 检测目的地变化 → 归档旧计划，延迟到 sendMessage 统一重置
                     if (newDest && oldDest && newDest !== oldDest) {
+                        console.log("[update_trip_info] ✅ 目的地变化，触发归档 + _justSwitched");
                         memory.archiveCurrentTrip();
-                        clearChatMessages();
                         memory.lastPlanText = "";
                         memory.tripInfo = {};
                         memory.weatherData = null;
-                        memory.messages = [];
+                        memory._justSwitched = true;
                         memory.save();
                     }
                     const updates = {};
@@ -1643,7 +1656,8 @@
 此时你必须立即生成方案，不许继续追问"住什么类型的酒店""想去哪个区"之类的问题。
 
 ## 工具调用规则
-- 用户提到城市 → 同时调 update_trip_info 和 get_weather
+- 用户提到任何城市（含"想去X""换X""改到X""去X"等） → 无条件调 update_trip_info 和 get_weather。即使是"那杭州呢""还是去北京吧"也要立刻提取城市名调用
+- 如果之前已有其他目的地，新城市会被系统自动识别为切换目的地并归档旧计划
 - 用户提天数/人数/预算/风格 → 调 update_trip_info
 - 单条消息含多个信息 → 全部填入 update_trip_info
 - 国际目的地（非中国城市）→ get_weather和search_attractions仅覆盖国内，改用search_web搜天气和攻略
@@ -2384,6 +2398,13 @@
 
                     typing.remove();
 
+                    console.log("[sendMessage] _justSwitched:", memory._justSwitched);
+                    if (memory._justSwitched) {
+                        console.log("[sendMessage] ✅ 触发 resetChat");
+                        memory._justSwitched = false;
+                        resetChat({ clearMemory: false, userMsg: text });
+                    }
+
                     if (result.type === "response") {
                         const info = memory.tripInfo;
                         const hasAll = info.destination && info.days && info.people && info.style;
@@ -2487,12 +2508,21 @@
                 }
             }
 
-            function resetChat() {
-                memory.clear();
+            function resetChat(options = {}) {
+                const { clearMemory = true, userMsg = null } = options;
+                if (clearMemory) {
+                    memory.clear();
+                } else {
+                    memory.messages = [];
+                    memory.save();
+                }
                 updateSidebarUI();
                 if (chat) {
                     chat.innerHTML =
                         '<div class="message msg-agent"><div class="agent-avatar">✦</div><div class="bubble">你好！我是你的AI旅行规划助手。<br><span style="color:var(--text-muted);">想去哪里？跟我说说你的想法吧～</span></div></div>';
+                }
+                if (userMsg) {
+                    addUserMsg(userMsg);
                 }
             }
 
