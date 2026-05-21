@@ -13,6 +13,7 @@
             --text-secondary: #616161;
             --text-muted: #9e9e9e;
             --border: #e0e0e0;
+            --primary: #323130;
             --shadow-1: 0 1px 3px rgba(0, 0, 0, 0.08);
             --shadow-2: 0 2px 8px rgba(0, 0, 0, 0.10);
             --shadow-3: 0 4px 16px rgba(0, 0, 0, 0.12);
@@ -426,13 +427,13 @@
             padding: 8px 12px;
             background: #fafafa;
             border-radius: 6px;
-            border-left: 3px solid var(--primary, #4a6cf7);
+            border-left: 3px solid var(--primary);
         }
         
         .day-heading {
             display: inline-block;
             font-weight: 600;
-            color: var(--primary, #4a6cf7);
+            color: var(--primary);
             margin-right: 4px;
             font-size: 0.88rem;
         }
@@ -468,13 +469,13 @@
             gap: 10px;
             animation: msgIn 0.32s cubic-bezier(0.4, 0, 0.2, 1);
         }
-
+        
         .style-bubble {
             display: flex;
             flex-direction: column;
             gap: 6px;
         }
-
+        
         .style-hint {
             font-size: 0.82rem;
             color: var(--text-secondary);
@@ -1774,8 +1775,12 @@
                 if (document.querySelector(".style-buttons")) return;
 
                 // 禁用输入框，强制通过按钮选择
-                if (input) { input.disabled = true; }
-                if (sendBtn) { sendBtn.disabled = true; }
+                if (input) {
+                    input.disabled = true;
+                }
+                if (sendBtn) {
+                    sendBtn.disabled = true;
+                }
 
                 // 气泡包装（与 .msg-agent 对齐）
                 const wrapper = document.createElement("div");
@@ -1795,13 +1800,31 @@
                 const container = document.createElement("div");
                 container.className = "style-buttons";
 
-                const buttonDefs = [
-                    { emoji: "🏖️", label: "休闲度假", style: "休闲" },
-                    { emoji: "📚", label: "人文历史", style: "人文" },
-                    { emoji: "⚡", label: "特种兵打卡", style: "特种兵" },
-                    { emoji: "👨‍👩‍👧", label: "亲子出游", style: "亲子" },
-                    { emoji: "🍜", label: "美食之旅", style: "美食" },
-                ];
+                const buttonDefs = [{
+                    emoji: "🏖️",
+                    label: "悠闲度假~躺平为主啦",
+                    style: "休闲"
+                }, {
+                    emoji: "📚",
+                    label: "多看看人文历史！",
+                    style: "人文"
+                }, {
+                    emoji: "⚡",
+                    label: "特种兵来了谁也别拦我",
+                    style: "特种兵"
+                }, {
+                    emoji: "👨‍👩‍👧",
+                    label: "亲子出游啦啦啦",
+                    style: "亲子"
+                }, {
+                    emoji: "🍜",
+                    label: "当然是吃吃吃！",
+                    style: "美食"
+                }, {
+                    emoji: "🎲",
+                    label: "不知道啊，随便先来一个吧！",
+                    style: "休闲"
+                }, ];
 
                 buttonDefs.forEach(def => {
                     const btn = document.createElement("button");
@@ -1826,10 +1849,16 @@
 
             async function handleStyleSelection(styleVal, styleLabel) {
                 // 先重新启用输入框
-                if (input) { input.disabled = false; }
-                if (sendBtn) { sendBtn.disabled = false; }
+                if (input) {
+                    input.disabled = false;
+                }
+                if (sendBtn) {
+                    sendBtn.disabled = false;
+                }
 
-                memory.updateTripInfo({ style: styleVal });
+                memory.updateTripInfo({
+                    style: styleVal
+                });
                 updateSidebarUI();
 
                 // 移除整个风格气泡（含父级 .message）
@@ -1856,7 +1885,7 @@
                             typing.setText("正在" + toolName + "...");
                             addToolCallMsg(toolName, toolArgs);
                         },
-                        async (conflictArgs) => {
+                        async(conflictArgs) => {
                             typing.setText("检测到偏好冲突，请选择...");
                             const choice = await showConflictDialog(conflictArgs);
                             typing.setText("");
