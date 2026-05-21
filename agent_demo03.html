@@ -1,0 +1,1351 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 旅行规划助手</title>
+    <style>
+         :root {
+            --bg: #faf8f5;
+            --card: #ffffff;
+            --text: #1c1c1e;
+            --muted: #8e8e93;
+            --accent: #ff6b35;
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04);
+            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.06);
+            --radius: 18px;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        html,
+        body {
+            height: 100%;
+            overflow: hidden;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif;
+            background: linear-gradient(170deg, #fdf2ec 0%, #faf6f2 40%, #faf8f6 100%);
+            color: var(--text);
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        header {
+            z-index: 20;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 20px;
+            background: rgba(255, 255, 255, 0.70);
+            backdrop-filter: blur(24px) saturate(180%);
+            -webkit-backdrop-filter: blur(24px) saturate(180%);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+        
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .brand-avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #ff9a76, #fecf6f);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            box-shadow: 0 2px 8px rgba(255, 107, 53, 0.25);
+        }
+        
+        header h1 {
+            font-size: 1.05rem;
+            font-weight: 590;
+            letter-spacing: -0.2px;
+        }
+        
+        .header-btns {
+            display: flex;
+            gap: 6px;
+        }
+        
+        .header-btns button {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            background: rgba(0, 0, 0, 0.04);
+            color: #555;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.25s ease;
+        }
+        
+        .header-btns button:hover {
+            background: rgba(0, 0, 0, 0.08);
+            transform: scale(1.05);
+        }
+        
+        .app {
+            display: flex;
+            height: calc(100vh - 59px);
+        }
+        
+        .sidebar {
+            position: fixed;
+            z-index: 30;
+            left: 0;
+            top: 59px;
+            bottom: 0;
+            width: 280px;
+            background: rgba(255, 255, 255, 0.88);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border-right: 1px solid rgba(0, 0, 0, 0.06);
+            padding: 20px 16px;
+            overflow-y: auto;
+            transform: translateX(-100%);
+            transition: transform 0.32s cubic-bezier(0.25, 0.1, 0.25, 1);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.10);
+        }
+        
+        .sidebar.open {
+            transform: translateX(0);
+        }
+        
+        .sidebar-backdrop {
+            position: fixed;
+            z-index: 29;
+            inset: 0;
+            top: 59px;
+            background: rgba(0, 0, 0, 0.15);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.28s;
+        }
+        
+        .sidebar-backdrop.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        
+        .sidebar-label {
+            font-size: 0.68rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            color: var(--muted);
+            margin: 16px 0 6px;
+        }
+        
+        .sidebar-label:first-child {
+            margin-top: 0;
+        }
+        
+        .pref-tag {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 14px;
+            font-size: 0.76rem;
+            font-weight: 500;
+            margin: 3px 4px 3px 0;
+            background: #fff4ef;
+            color: var(--accent);
+            border: 1px solid rgba(255, 107, 53, 0.12);
+        }
+        
+        .info-row {
+            padding: 6px 0;
+            font-size: 0.8rem;
+            color: #555;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .info-row span:last-child {
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+        
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 18px 16px 8px;
+            scroll-behavior: smooth;
+        }
+        
+        .chat-container::-webkit-scrollbar {
+            width: 4px;
+        }
+        
+        .chat-container::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.08);
+            border-radius: 4px;
+        }
+        
+        .message {
+            margin-bottom: 14px;
+            animation: msgIn 0.35s cubic-bezier(0.25, 0.1, 0.25, 1);
+        }
+        
+        @keyframes msgIn {
+            from {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .msg-user {
+            display: flex;
+            justify-content: flex-end;
+        }
+        
+        .msg-agent {
+            display: flex;
+            gap: 9px;
+        }
+        
+        .agent-avatar {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            background: linear-gradient(135deg, #ff9a76, #fecf6f);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            box-shadow: 0 2px 6px rgba(255, 107, 53, 0.2);
+            margin-top: 2px;
+        }
+        
+        .bubble {
+            padding: 11px 15px;
+            line-height: 1.5;
+            font-size: 0.88rem;
+            word-break: break-word;
+        }
+        
+        .msg-user .bubble {
+            color: #fff;
+            max-width: 78%;
+            border-radius: 18px 18px 6px 18px;
+            background: linear-gradient(135deg, #ff6b35, #ff8c5a);
+            box-shadow: 0 4px 12px rgba(255, 107, 53, 0.22);
+        }
+        
+        .msg-agent .bubble {
+            background: var(--card);
+            color: var(--text);
+            max-width: 88%;
+            border-radius: 18px 18px 18px 6px;
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+            padding: 4px 0;
+        }
+        
+        .typing-dots span {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #ccc;
+            animation: bounce 1.2s infinite;
+        }
+        
+        .typing-dots span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        
+        .typing-dots span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+        
+        @keyframes bounce {
+            0%,
+            60%,
+            100% {
+                transform: translateY(0);
+                opacity: 0.4;
+            }
+            30% {
+                transform: translateY(-6px);
+                opacity: 1;
+            }
+        }
+        
+        .plan-card {
+            background: var(--card);
+            border-radius: 16px;
+            padding: 18px 16px;
+            box-shadow: var(--shadow-md);
+            margin-top: 4px;
+            border: 1px solid #f0e8de;
+            line-height: 1.6;
+            font-size: 0.86rem;
+        }
+        
+        .plan-card h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .plan-card h4 {
+            font-size: 0.85rem;
+            font-weight: 590;
+            color: var(--accent);
+            margin: 10px 0 4px;
+        }
+        
+        .plan-card p,
+        .plan-card li {
+            font-size: 0.85rem;
+            color: #555;
+            margin: 3px 0;
+        }
+        
+        .plan-card ul {
+            margin: 4px 0 8px 16px;
+        }
+        
+        .plan-highlights {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin: 8px 0;
+        }
+        
+        .plan-highlight {
+            padding: 6px 12px;
+            border-radius: 12px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            background: #fff4ef;
+            color: var(--accent);
+        }
+        
+        .plan-card .day-title {
+            font-weight: 590;
+            color: #333;
+            margin-top: 8px;
+        }
+        
+        .plan-card .day-content {
+            color: #666;
+            margin-left: 8px;
+        }
+        
+        .input-bar {
+            padding: 8px 14px 12px;
+            display: flex;
+            gap: 8px;
+            align-items: flex-end;
+            background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.6));
+        }
+        
+        .input-wrap {
+            flex: 1;
+            display: flex;
+            align-items: flex-end;
+            gap: 6px;
+            background: var(--card);
+            border-radius: 24px;
+            padding: 5px 6px 5px 16px;
+            box-shadow: var(--shadow-md);
+            border: 1.5px solid transparent;
+            transition: border 0.22s, box-shadow 0.22s;
+        }
+        
+        .input-wrap:focus-within {
+            border-color: rgba(255, 107, 53, 0.30);
+            box-shadow: 0 4px 18px rgba(255, 107, 53, 0.08), 0 1px 4px rgba(0, 0, 0, 0.03);
+        }
+        
+        .input-wrap textarea {
+            flex: 1;
+            border: none;
+            outline: none;
+            font-size: 0.88rem;
+            font-family: inherit;
+            resize: none;
+            background: transparent;
+            padding: 5px 0;
+            color: var(--text);
+            min-height: 22px;
+            max-height: 90px;
+            line-height: 1.4;
+        }
+        
+        .input-wrap textarea::placeholder {
+            color: #c5bfb9;
+        }
+        
+        .send-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            background: linear-gradient(135deg, #ff6b35, #ff8c5a);
+            color: #fff;
+            font-size: 1rem;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 3px 10px rgba(255, 107, 53, 0.28);
+            transition: all 0.2s;
+        }
+        
+        .send-btn:hover {
+            transform: scale(1.06);
+        }
+        
+        .send-btn:active {
+            transform: scale(0.93);
+        }
+        
+        .send-btn:disabled {
+            background: #d1cfcb;
+            box-shadow: none;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .modal-overlay {
+            position: fixed;
+            z-index: 50;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.28);
+            backdrop-filter: blur(5px);
+            animation: fadeIn 0.2s;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        
+        .modal {
+            background: rgba(255, 255, 255, 0.94);
+            backdrop-filter: blur(20px);
+            border-radius: 22px;
+            padding: 26px 22px;
+            width: 390px;
+            max-width: 92vw;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.10);
+            animation: scaleIn 0.28s cubic-bezier(0.25, 0.1, 0.25, 1);
+        }
+        
+        @keyframes scaleIn {
+            from {
+                opacity: 0;
+                transform: scale(0.93) translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+        
+        .modal h3 {
+            font-size: 1.1rem;
+            font-weight: 590;
+            margin-bottom: 16px;
+        }
+        
+        .modal label {
+            display: block;
+            font-size: 0.78rem;
+            font-weight: 590;
+            margin: 10px 0 4px;
+            color: #555;
+        }
+        
+        .modal input,
+        .modal select {
+            width: 100%;
+            padding: 9px 13px;
+            border: 1.5px solid #e8e3dc;
+            border-radius: 12px;
+            font-size: 0.86rem;
+            outline: none;
+            font-family: inherit;
+            background: #fdfcfb;
+        }
+        
+        .modal input:focus,
+        .modal select:focus {
+            border-color: var(--accent);
+        }
+        
+        .modal .hint {
+            font-size: 0.7rem;
+            color: var(--muted);
+            margin-top: 2px;
+        }
+        
+        .modal-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+            margin-top: 18px;
+        }
+        
+        .modal-actions button {
+            padding: 8px 20px;
+            border-radius: 18px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.84rem;
+            font-weight: 550;
+        }
+        
+        .btn-ghost {
+            background: #f2f2f2;
+            color: #666;
+        }
+        
+        .btn-fill {
+            background: var(--accent);
+            color: #fff;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        .upload-btn {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            background: rgba(0, 0, 0, 0.04);
+            color: #555;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.25s ease;
+        }
+        
+        .upload-btn:hover {
+            background: rgba(0, 0, 0, 0.08);
+            transform: scale(1.05);
+        }
+        
+        @media (max-width:640px) {
+            .chat-container {
+                padding: 10px 8px 4px;
+            }
+            .bubble {
+                font-size: 0.83rem;
+                padding: 10px 12px;
+            }
+            .sidebar {
+                width: 100%;
+                max-width: 280px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div class="brand">
+            <div class="brand-avatar">✈</div>
+            <h1>旅行助手</h1>
+        </div>
+        <div class="header-btns">
+            <button onclick="toggleSidebar()">☰</button>
+            <button onclick="showSettings()">⚙</button>
+            <button class="upload-btn" onclick="document.getElementById('fileInput').click()" title="上传HTML文件">📄</button>
+            <button onclick="resetChat()">+</button>
+        </div>
+    </header>
+
+    <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleSidebar()"></div>
+
+    <div class="app">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-label">当前行程信息</div>
+            <div id="tripInfo"><span style="color:var(--muted);font-size:0.78rem;">对话中逐步收集...</span></div>
+            <div class="sidebar-label">用户偏好</div>
+            <div id="preferences"><span style="color:var(--muted);font-size:0.78rem;">对话中学习...</span></div>
+            <div class="sidebar-label">对话摘要</div>
+            <div id="convSummary"><span style="color:var(--muted);font-size:0.78rem;">暂无</span></div>
+        </aside>
+
+        <div class="main">
+            <div class="chat-container" id="chatContainer">
+                <div class="message msg-agent">
+                    <div class="agent-avatar">✈</div>
+                    <div class="bubble">你好！我是你的旅行规划助手。<br><span style="color:var(--muted);">想一起去哪里看看？告诉我你的想法吧～</span></div>
+                </div>
+            </div>
+            <div class="input-bar">
+                <div class="input-wrap">
+                    <textarea id="userInput" rows="1" placeholder="说说你的旅行想法..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();handleSend();}" oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,90)+'px';"></textarea>
+                    <button class="send-btn" id="sendBtn" onclick="handleSend()">↑</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay hidden" id="settingsModal">
+        <div class="modal">
+            <h3>设置</h3>
+            <label>DashScope API Key</label>
+            <input type="password" id="apiKeyInput" placeholder="sk-...">
+            <div class="hint">密钥仅保存在浏览器本地</div>
+            <label>运行模式</label>
+            <select id="modeSelect">
+      <option value="real">真实 API（需 Key）</option>
+      <option value="demo">Demo 模拟</option>
+    </select>
+            <div class="hint" id="modeHint"></div>
+            <div class="modal-actions">
+                <button class="btn-ghost" onclick="hideSettings()">取消</button>
+                <button class="btn-fill" onclick="saveSettings()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <input type="file" id="fileInput" accept=".html" style="display:none" onchange="handleFileUpload(event)">
+
+    <script>
+        (function() {
+            "use strict";
+            console.log("[TravelAgent] 脚本开始加载...");
+
+            // ============================================================
+            // 0. 配置 & DOM 引用
+            // ============================================================
+            const DASHSCOPE_URL = "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation";
+            let apiKey = (function() {
+                try {
+                    return localStorage.getItem("dq_travel_apikey") || "";
+                } catch (e) {
+                    return "";
+                }
+            })();
+            let runMode = (function() {
+                try {
+                    return localStorage.getItem("dq_travel_mode") || "demo";
+                } catch (e) {
+                    return "demo";
+                }
+            })();
+
+            const $ = function(id) {
+                return document.getElementById(id);
+            };
+            const chat = $("chatContainer");
+            const input = $("userInput");
+            const sendBtn = $("sendBtn");
+
+            console.log("[TravelAgent] DOM ready, chat=", !!chat, "input=", !!input);
+
+            // ============================================================
+            // 1. 工具函数
+            // ============================================================
+            function esc(s) {
+                if (s == null) return "";
+                const d = document.createElement("div");
+                d.textContent = String(s);
+                return d.innerHTML;
+            }
+
+            function nl2br(s) {
+                return esc(s).replace(/\n/g, "<br>");
+            }
+
+            function scrollDown() {
+                if (chat) chat.scrollTop = chat.scrollHeight;
+            }
+
+            // ============================================================
+            // 2. 景点 & 工具
+            // ============================================================
+            var ATTRACTIONS_DB = {
+                "北京-人文": ["故宫博物院", "天坛公园", "颐和园", "八达岭长城", "雍和宫", "国家博物馆"],
+                "北京-休闲": ["三里屯太古里", "后海酒吧街", "798艺术区", "古北水镇", "欢乐谷"],
+                "上海-人文": ["外滩万国建筑群", "豫园", "上海博物馆", "静安寺"],
+                "上海-休闲": ["迪士尼乐园", "南京路步行街", "新天地", "田子坊", "朱家角古镇"],
+                "杭州-人文": ["灵隐寺", "雷峰塔", "岳王庙", "南宋御街", "丝绸博物馆"],
+                "杭州-休闲": ["西湖风景区", "西溪湿地", "龙井茶园", "千岛湖", "宋城"],
+                "成都-人文": ["武侯祠", "杜甫草堂", "金沙遗址", "文殊院"],
+                "成都-休闲": ["宽窄巷子", "锦里古街", "大熊猫基地", "青城山", "春熙路"],
+                "三亚-休闲": ["亚龙湾", "蜈支洲岛", "天涯海角", "南山文化旅游区", "海棠湾免税店"],
+                "马尔代夫-休闲": ["太阳岛度假村", "浮潜体验", "沙滩烛光晚餐", "本地渔村", "海钓", "水上飞机"],
+                "东京-人文": ["浅草寺", "明治神宫", "皇居", "国立博物馆"],
+                "东京-休闲": ["迪士尼海洋", "秋叶原", "涩谷", "台场", "原宿"],
+                "巴黎-人文": ["卢浮宫", "奥赛博物馆", "巴黎圣母院", "凯旋门", "先贤祠"],
+                "巴黎-休闲": ["埃菲尔铁塔", "香榭丽舍大街", "蒙马特高地", "塞纳河游船"],
+                "曼谷-人文": ["大皇宫", "卧佛寺", "郑王庙", "暹罗博物馆"],
+                "曼谷-休闲": ["水上市场", "考山路夜市", "暹罗广场", "恰图恰市场"],
+                "西安-人文": ["兵马俑", "大雁塔", "西安城墙", "陕西历史博物馆", "华清宫"],
+                "西安-休闲": ["回民街", "大唐不夜城", "永兴坊", "骊山"],
+                "巴厘岛-休闲": ["库塔海滩", "乌布皇宫", "海神庙", "金巴兰日落", "蓝梦岛潜水"],
+                "普吉岛-休闲": ["芭东海滩", "皮皮岛", "攀牙湾", "皇帝岛"],
+                "桂林-休闲": ["漓江", "阳朔西街", "龙脊梯田", "十里画廊", "遇龙河漂流"],
+                "厦门-休闲": ["鼓浪屿", "曾厝垵", "环岛路", "南普陀寺", "沙坡尾"],
+                "马来西亚-休闲": ["吉隆坡双子塔", "兰卡威天空之桥", "仙本那潜水", "马六甲古城", "槟城壁画街"],
+                "吉隆坡-休闲": ["双子塔", "黑风洞", "独立广场", "武吉免登购物区", "中央艺术坊"],
+                "沙巴-休闲": ["丹绒亚路海滩", "京那巴鲁山", "美人鱼岛", "红树林长鼻猴", "水上清真寺"],
+            };
+
+            function searchAttractions(city, interest) {
+                interest = interest || "休闲";
+                var tag = /人文|历史|文化/.test(interest) ? "人文" : "休闲";
+                var key = city + "-" + tag;
+                if (ATTRACTIONS_DB[key]) return ATTRACTIONS_DB[key].join("、");
+                var keys = Object.keys(ATTRACTIONS_DB);
+                for (var i = 0; i < keys.length; i++) {
+                    if (keys[i].indexOf(city) === 0 || keys[i].indexOf(city) > -1) return ATTRACTIONS_DB[keys[i]].join("、");
+                }
+                return "当地热门景点、特色街区";
+            }
+
+            function calculator(expr) {
+                if (!/^[\d+\-*/().%\s]+$/.test(expr)) return null;
+                try {
+                    var r = Function('"use strict"; return (' + expr + ')')();
+                    if (typeof r !== "number" || !isFinite(r)) return null;
+                    return Number.isInteger(r) ? r : +r.toFixed(2);
+                } catch (e) {
+                    return null;
+                }
+            }
+
+            function budgetCheck(people, days, totalBudget) {
+                if (!totalBudget || people <= 0 || days <= 0) return null;
+                return Math.floor(totalBudget / (people * days));
+            }
+
+            // ---- 文件上传处理 ----
+            var ALLOWED_EXTENSIONS = [".html"];
+            var ALLOWED_MIME_TYPES = ["text/html"];
+
+            function handleFileUpload(event) {
+                var file = event.target.files[0];
+                if (!file) return;
+
+                // 1. 校验文件扩展名（白名单）
+                var fileName = file.name.toLowerCase();
+                var extOK = false;
+                for (var i = 0; i < ALLOWED_EXTENSIONS.length; i++) {
+                    if (fileName.endsWith(ALLOWED_EXTENSIONS[i])) {
+                        extOK = true;
+                        break;
+                    }
+                }
+                if (!extOK) {
+                    addAgentBubble("当前不支持该文件类型，请尝试其他文件\n\n支持的类型：" + ALLOWED_EXTENSIONS.join(", "));
+                    event.target.value = "";
+                    return;
+                }
+
+                // 2. 校验 MIME 类型（text/html）
+                var mimeOK = false;
+                for (var j = 0; j < ALLOWED_MIME_TYPES.length; j++) {
+                    if (file.type === ALLOWED_MIME_TYPES[j] || (file.type === "" && fileName.endsWith(".html"))) {
+                        mimeOK = true;
+                        break;
+                    }
+                }
+                if (!mimeOK) {
+                    addAgentBubble("当前不支持该文件类型，请尝试其他文件\n\nMIME 类型：" + (file.type || "未知"));
+                    event.target.value = "";
+                    return;
+                }
+
+                // 3. 安全读取：只读文本内容，移除所有脚本（不执行）
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    var rawContent = e.target.result;
+                    // 移除所有 script 标签及其内容
+                    var safeContent = rawContent.replace(/<script[\s\S]*?<\/script>/gi, "[脚本已移除]");
+                    safeContent = safeContent.replace(/<script[^>]*\/>/gi, "");
+                    // 移除内联事件属性 (onclick, onload 等)
+                    safeContent = safeContent.replace(/\s+on\w+\s*=\s*"[^"]*"/gi, "");
+                    safeContent = safeContent.replace(/\s+on\w+\s*=\s*'[^']*'/gi, "");
+                    // 提取纯文本预览
+                    var textContent = safeContent.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+                    var preview = textContent.slice(0, 800);
+                    addAgentBubble("已读取文件（脚本已过滤）：\n\n" + preview + (textContent.length > 800 ? "\n\n...（仅显示前800字）" : ""));
+                    updateSidebar();
+                };
+                reader.onerror = function() {
+                    addAgentBubble("文件读取失败，请重试。");
+                };
+                reader.readAsText(file, "UTF-8");
+                event.target.value = "";
+            }
+
+            // ============================================================
+            // 3. AgentMemory
+            // ============================================================
+            function AgentMemory() {
+                this.conversation = [];
+                this.preferences = {};
+            }
+            AgentMemory.prototype.add = function(role, content) {
+                this.conversation.push({
+                    role: role,
+                    content: content
+                });
+            };
+            AgentMemory.prototype.setPref = function(k, v) {
+                this.preferences[k] = v;
+            };
+            AgentMemory.prototype.getContext = function() {
+                var ctx = "";
+                var recent = this.conversation.slice(-8);
+                for (var i = 0; i < recent.length; i++) {
+                    ctx += recent[i].role + ": " + recent[i].content + "\n";
+                }
+                return ctx;
+            };
+
+            // ============================================================
+            // 4. TravelAgent
+            // ============================================================
+            var KNOWN_CITIES = [
+                "马来西亚", "吉隆坡", "沙巴", "兰卡威", "槟城", "仙本那",
+                "马尔代夫", "北京", "上海", "杭州", "成都", "三亚", "东京", "巴黎", "曼谷",
+                "西安", "巴厘岛", "普吉岛", "桂林", "厦门", "丽江", "大理", "青岛", "重庆",
+                "新加坡", "大阪", "京都", "纽约", "伦敦", "悉尼", "罗马", "迪拜", "清迈", "张家界", "黄山"
+            ];
+
+            function TravelAgent() {
+                this.memory = new AgentMemory();
+                this.info = {};
+                // 用数组存字段，避免内联转义问题
+                this.coreFields = [{
+                    key: "destination",
+                    label: "目的地",
+                    ask: "你想去哪里旅行呢？"
+                }, {
+                    key: "days",
+                    label: "天数",
+                    ask: "计划玩几天？"
+                }, {
+                    key: "people",
+                    label: "人数",
+                    ask: "几个人一起去呀？"
+                }, ];
+            }
+
+            TravelAgent.prototype.extractInfo = function(text) {
+                var found = {};
+
+                // 目的地
+                for (var i = 0; i < KNOWN_CITIES.length; i++) {
+                    if (text.indexOf(KNOWN_CITIES[i]) > -1) {
+                        found.destination = KNOWN_CITIES[i];
+                        break;
+                    }
+                }
+                if (!found.destination) {
+                    if (/日本/.test(text)) found.destination = "东京";
+                    else if (/法国|欧洲/.test(text)) found.destination = "巴黎";
+                    else if (/泰国/.test(text)) found.destination = "曼谷";
+                    else if (/印尼|印度尼西亚/.test(text)) found.destination = "巴厘岛";
+                    else if (/海边|海岛|海滩|度假/.test(text)) found.style_hint = "海岛";
+                }
+
+                // 天数
+                var dm = text.match(/(\d+)\s*天/);
+                if (dm) found.days = parseInt(dm[1], 10);
+
+                // 人数
+                var pm = text.match(/(\d+)\s*(个|人)?/);
+                if (pm) found.people = parseInt(pm[1], 10);
+
+                if (!found.people) {
+                    if (/一个人|独自|自己|单人/.test(text)) found.people = 1;
+                    if (/情侣|两个人|二人|两人|两个/.test(text)) found.people = 2;
+                    if (/一家三口|三口/.test(text)) found.people = 3;
+                    if (/一家人|全家/.test(text)) found.people = 4;
+                }
+
+                // 预算
+                var bm = text.match(/(\d+)\s*[万元]?(?:预算|块钱?|元|块|万)/);
+                if (bm) {
+                    var val = parseInt(bm[1], 10);
+                    if (bm[0].indexOf("万") > -1) val *= 10000;
+                    found.budget = val;
+                }
+
+                // 风格
+                var styleMap = {
+                    "休闲": "休闲",
+                    "轻松": "休闲",
+                    "不赶路": "休闲",
+                    "放松": "休闲",
+                    "度假": "休闲",
+                    "躺": "休闲",
+                    "人文": "人文",
+                    "历史": "人文",
+                    "文化": "人文",
+                    "古迹": "人文",
+                    "博物馆": "人文",
+                    "特种兵": "特种兵",
+                    "紧凑": "特种兵",
+                    "打卡": "特种兵",
+                    "亲子": "亲子",
+                    "带孩子": "亲子",
+                    "小孩": "亲子",
+                    "娃": "亲子",
+                    "蜜月": "蜜月",
+                    "情侣": "蜜月",
+                    "二人世界": "蜜月",
+                    "浪漫": "蜜月",
+                    "美食": "美食",
+                    "吃货": "美食",
+                    "购物": "购物",
+                    "买买买": "购物",
+                    "逛街": "购物",
+                    "深度": "深度",
+                    "慢": "休闲",
+                    "不赶": "休闲",
+                };
+                var styleKeys = Object.keys(styleMap);
+                for (var i = 0; i < styleKeys.length; i++) {
+                    if (text.indexOf(styleKeys[i]) > -1) {
+                        found.style = styleMap[styleKeys[i]];
+                        break;
+                    }
+                }
+
+                // 健康
+                if (/恐高|怕高|高海拔/.test(text)) found.health = "恐高";
+                if (/心脏病|心脏|心脑血管/.test(text)) found.health = (found.health || "") + " 心脏病";
+                if (/晕船|晕车|晕机/.test(text)) found.health = (found.health || "") + " 晕船/晕车";
+                if (/没问题|没有疾病|身体好|健康/.test(text) && !found.health) found.health = "无特殊问题";
+                if (/行动不便|腿脚|轮椅|老人/.test(text)) found.health = (found.health || "") + " 行动需注意";
+
+                return found;
+            };
+
+            TravelAgent.prototype.mergeInfo = function(found) {
+                var self = this;
+                Object.keys(found).forEach(function(k) {
+                    if (k === "style_hint") return;
+                    if (found[k] && !self.info[k]) self.info[k] = found[k];
+                });
+            };
+
+            TravelAgent.prototype.getNextMissingCore = function() {
+                for (var i = 0; i < this.coreFields.length; i++) {
+                    if (!this.info[this.coreFields[i].key]) return this.coreFields[i];
+                }
+                return null;
+            };
+
+            // ---- LLM 调用 ----
+            TravelAgent.prototype.callLLM = async function(prompt) {
+                if (runMode === "demo") return "";
+                if (!apiKey) throw new Error("请先设置 API Key");
+
+                var resp = await fetch(DASHSCOPE_URL, {
+                    method: "POST",
+                    headers: {
+                        "Authorization": "Bearer " + apiKey,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        model: "qwen-turbo",
+                        input: {
+                            messages: [{
+                                role: "user",
+                                content: prompt
+                            }]
+                        },
+                        parameters: {
+                            temperature: 0.5,
+                            max_tokens: 1500
+                        }
+                    })
+                });
+                if (!resp.ok) {
+                    var errText = await resp.text();
+                    throw new Error("API 错误 (" + resp.status + "): " + errText.slice(0, 200));
+                }
+                var data = await resp.json();
+                return data.output.text.trim();
+            };
+
+            // ---- 生成规划文本 ----
+            TravelAgent.prototype._genPlanText = function() {
+                var info = this.info;
+                var city = info.destination;
+                var people = info.people;
+                var days = info.days;
+                var budget = info.budget;
+                var style = info.style || "休闲";
+                var daily = budget ? Math.floor(budget / (people * days)) : 0;
+                var styleLabel = /人文/.test(style) ? "人文" : "休闲";
+                var attr1 = searchAttractions(city, styleLabel);
+                var attr2 = searchAttractions(city, styleLabel === "人文" ? "休闲" : "人文");
+
+                var spots1 = attr1.split("、");
+                var spots2 = attr2.split("、");
+                var allSpots = spots1.concat(spots2);
+                var perDay = Math.max(2, Math.min(4, Math.ceil(allSpots.length / days)));
+
+                var itinerary = "";
+                for (var d = 0; d < days; d++) {
+                    var daySpots = allSpots.slice(d * perDay, (d + 1) * perDay);
+                    if (daySpots.length === 0) {
+                        itinerary += "第" + (d + 1) + "天：自由探索日，在酒店附近漫步，发现隐藏的惊喜～\n";
+                    } else {
+                        itinerary += "第" + (d + 1) + "天：" + daySpots.join(" → ") + (d === days - 1 ? "，晚上整理行李准备返程" : "") + "\n";
+                    }
+                }
+
+                var healthNote = (info.health && info.health !== "无特殊问题") ?
+                    "\n- 关于健康：你提到" + info.health + "，行程已避开相关风险项目，建议随身携带必要药品。" :
+                    "";
+
+                var budgetDetail;
+                if (budget >= 50000) {
+                    budgetDetail = "建议分配：机票约" + Math.floor(budget * 0.3) + "元、住宿约" + Math.floor(budget * 0.35) + "元、餐饮约" + Math.floor(budget * 0.15) + "元、门票/活动约" + Math.floor(budget * 0.12) + "元、其他约" + Math.floor(budget * 0.08) + "元";
+                } else {
+                    budgetDetail = "紧凑预算下建议优先保证交通和住宿：机票约" + Math.floor(budget * 0.4) + "元、住宿约" + Math.floor(budget * 0.35) + "元，其余灵活安排";
+                }
+
+                return "好的！为你定制了一份 " + city + " " + days + "天" + people + "人旅行方案：\n\n" +
+                    "预算概览\n" +
+                    "总预算" + budget + "元，人均每日约" + daily + "元。" + budgetDetail + "。\n\n" +
+                    "每日行程\n" +
+                    itinerary + "\n" +
+                    "美食推荐\n" +
+                    "当地特色美食不容错过，建议每天安排一顿知名餐厅，其余随走随吃更有惊喜感。\n\n" +
+                    "温馨提示\n" +
+                    "- 提前预订机票和酒店可节省 20-30% 费用\n" +
+                    "- 下载离线地图以备不时之需\n" +
+                    "- 准备舒适的步行鞋" + healthNote + "\n\n" +
+                    "祝你在" + city + "度过一段美好的时光！有需要调整的地方随时告诉我～";
+            };
+
+            // ---- 内部 Pipeline ----
+            TravelAgent.prototype.runPipeline = async function(onThinking) {
+                var city = this.info.destination;
+                var people = this.info.people;
+                var days = this.info.days;
+                var budget = this.info.budget;
+                var style = this.info.style || "休闲";
+
+                if (onThinking) onThinking("正在查询景点信息...");
+
+                var styleLabel = /人文/.test(style) ? "人文" : "休闲";
+                searchAttractions(city, styleLabel);
+                searchAttractions(city, styleLabel === "人文" ? "休闲" : "人文");
+                budgetCheck(people, days, budget);
+
+                if (onThinking) onThinking("正在生成行程规划...");
+
+                if (runMode === "demo") return this._genPlanText();
+
+                var prompt = "你是一个专业的旅行规划师。请根据以下信息生成一份完整的旅行方案：\n\n" +
+                    "目的地：" + city + "\n天数：" + days + "天\n人数：" + people + "人\n" +
+                    "总预算：" + budget + "元（人均每日预算约" + budgetCheck(people, days, budget) + "元）\n" +
+                    "旅行风格：" + style + "\n健康约束：" + (this.info.health || "无") + "\n\n" +
+                    "景点参考（" + styleLabel + "）：" + searchAttractions(city, styleLabel) + "\n" +
+                    "景点参考（" + (styleLabel === "人文" ? "休闲" : "人文") + "）：" + searchAttractions(city, styleLabel === "人文" ? "休闲" : "人文") + "\n\n" +
+                    "请输出完整的旅行规划，自然亲切的语气，包含预算分配、每日行程、注意事项。";
+
+                return await this.callLLM(prompt);
+            };
+
+            // ---- 主入口 ----
+            TravelAgent.prototype.processMessage = async function(userText, onThinking) {
+                this.memory.add("user", userText);
+
+                // 1. 提取并合并用户消息中的信息（支持一次识别多个字段）
+                var found = this.extractInfo(userText);
+                this.mergeInfo(found);
+
+                // 2. 按优先级检查缺失的核心字段：目的地 → 天数 → 人数
+                var nextMissing = this.getNextMissingCore();
+                console.log("[Agent] merged info:", JSON.stringify(this.info), "nextMissing:", nextMissing ? nextMissing.key : "none");
+
+                // 3. 如果还有核心字段缺失，一次只问一个问题
+                if (nextMissing) {
+                    return {
+                        type: "question",
+                        text: nextMissing.ask
+                    };
+                }
+
+                // 4. 三个核心信息都收集齐了 — 可选字段自动补默认值，直接生成方案
+                if (!this.info.budget) this.info.budget = 35000;
+                if (!this.info.style) this.info.style = "休闲";
+                if (!this.info.health) this.info.health = "无特殊问题";
+
+                var plan = await this.runPipeline(onThinking);
+                this.memory.add("agent", plan);
+                return {
+                    type: "plan",
+                    text: plan
+                };
+            };
+
+            // ============================================================
+            // 5. UI
+            // ============================================================
+            var agent = new TravelAgent();
+
+            function updateSidebar() {
+                var infoDiv = $("tripInfo");
+                if (!infoDiv) return;
+                var info = agent.info;
+                var labels = {
+                    destination: "目的地",
+                    days: "天数",
+                    people: "人数",
+                    budget: "预算",
+                    style: "风格",
+                    health: "健康"
+                };
+                var rows = [];
+                Object.keys(info).forEach(function(k) {
+                    if (info[k]) {
+                        var display = info[k];
+                        if (k === "budget") display = info[k].toLocaleString() + " 元";
+                        if (k === "days") display = info[k] + " 天";
+                        if (k === "people") display = info[k] + " 人";
+                        rows.push('<div class="info-row"><span>' + labels[k] + '</span><span>' + display + '</span></div>');
+                    }
+                });
+                infoDiv.innerHTML = rows.length ? rows.join("") : '<span style="color:var(--muted);font-size:0.78rem;">对话中逐步收集...</span>';
+
+                var prefDiv = $("preferences");
+                if (prefDiv) {
+                    var tags = [];
+                    if (info.style) tags.push('<span class="pref-tag">' + esc(info.style) + '</span>');
+                    prefDiv.innerHTML = tags.length ? tags.join("") : '<span style="color:var(--muted);font-size:0.78rem;">对话中学习...</span>';
+                }
+
+                var sumDiv = $("convSummary");
+                if (sumDiv) {
+                    var msgs = agent.memory.conversation;
+                    if (!msgs.length) {
+                        sumDiv.innerHTML = '<span style="color:var(--muted);font-size:0.78rem;">暂无</span>';
+                    } else {
+                        sumDiv.innerHTML = msgs.slice(-4).map(function(m) {
+                            return '<div style="padding:4px 0;font-size:0.74rem;color:#777;line-height:1.3;"><strong>' + (m.role === 'user' ? '用户' : '助手') + ':</strong> ' + esc(m.content.slice(0, 40)) + (m.content.length > 40 ? '…' : '') + '</div>';
+                        }).join("");
+                    }
+                }
+            }
+
+            function addUserMsg(text) {
+                if (!chat) return;
+                var el = document.createElement("div");
+                el.className = "message msg-user";
+                el.innerHTML = '<div class="bubble">' + esc(text) + '</div>';
+                chat.appendChild(el);
+                scrollDown();
+            }
+
+            function addAgentBubble(text) {
+                if (!chat) return;
+                var el = document.createElement("div");
+                el.className = "message msg-agent";
+                el.innerHTML = '<div class="agent-avatar">✈</div><div class="bubble">' + nl2br(text) + '</div>';
+                chat.appendChild(el);
+                scrollDown();
+            }
+
+            function addPlanCard(planText) {
+                if (!chat) return;
+                var el = document.createElement("div");
+                el.className = "message msg-agent";
+                // 简单 Markdown 转换
+                var html = nl2br(planText);
+                // 处理 **粗体**
+                html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+                // 处理 - 列表
+                html = html.replace(/(?:^|<br>)- (.+?)(?=<br>|$)/g, '<br>· $1');
+                el.innerHTML = '<div class="agent-avatar">✈</div><div class="plan-card">' + html + '</div>';
+                chat.appendChild(el);
+                scrollDown();
+            }
+
+            function showTyping() {
+                if (!chat) return {
+                    setText: function() {},
+                    remove: function() {}
+                };
+                var el = document.createElement("div");
+                el.className = "message msg-agent";
+                el.id = "typingIndicator";
+                el.innerHTML = '<div class="agent-avatar">✈</div><div class="bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div>';
+                chat.appendChild(el);
+                scrollDown();
+                return {
+                    setText: function(t) {
+                        var bubble = el.querySelector(".bubble");
+                        if (bubble) bubble.textContent = t;
+                    },
+                    remove: function() {
+                        if (el.parentNode) el.remove();
+                    }
+                };
+            }
+
+            // ---- 发送 ----
+            async function sendMessage() {
+                if (!input || !sendBtn) {
+                    console.error("[sendMessage] input or sendBtn not found");
+                    return;
+                }
+                var text = input.value.trim();
+                if (!text) return;
+
+                console.log("[sendMessage] user text:", text);
+                input.value = "";
+                input.style.height = "auto";
+                input.disabled = true;
+                sendBtn.disabled = true;
+
+                addUserMsg(text);
+                var typing = showTyping();
+
+                try {
+                    var result = await agent.processMessage(text, function(status) {
+                        typing.setText(status);
+                    });
+
+                    typing.remove();
+
+                    if (result.type === "question") {
+                        console.log("[sendMessage] asking:", result.text.slice(0, 60));
+                        addAgentBubble(result.text);
+                    } else {
+                        console.log("[sendMessage] plan generated, length:", result.text.length);
+                        addPlanCard(result.text);
+                    }
+
+                    updateSidebar();
+                } catch (err) {
+                    console.error("[sendMessage] error:", err);
+                    typing.remove();
+                    addAgentBubble("抱歉，出了点问题：" + (err.message || err) + "\n请检查网络或 API 设置后重试。");
+                } finally {
+                    input.disabled = false;
+                    sendBtn.disabled = false;
+                    input.focus();
+                }
+            }
+
+            // 包装函数给 onclick 用（保证异常可见）
+            function handleSend() {
+                sendMessage().catch(function(e) {
+                    console.error("[handleSend]", e);
+                });
+            }
+
+            // ============================================================
+            // 6. 设置 & 杂项
+            // ============================================================
+            function toggleSidebar() {
+                var sb = $("sidebar"),
+                    bd = $("sidebarBackdrop");
+                if (sb) sb.classList.toggle("open");
+                if (bd) bd.classList.toggle("visible");
+            }
+
+            function showSettings() {
+                var modal = $("settingsModal");
+                if (!modal) return;
+                modal.classList.remove("hidden");
+                $("apiKeyInput").value = apiKey;
+                $("modeSelect").value = runMode;
+                $("modeHint").textContent = runMode === "demo" ? "无需 Key，使用本地模拟" : "需要 DashScope API Key";
+                $("modeSelect").onchange = function() {
+                    $("modeHint").textContent = this.value === "demo" ? "无需 Key，使用本地模拟" : "需要 DashScope API Key";
+                };
+            }
+
+            function hideSettings() {
+                var m = $("settingsModal");
+                if (m) m.classList.add("hidden");
+            }
+
+            function saveSettings() {
+                apiKey = $("apiKeyInput").value.trim();
+                runMode = $("modeSelect").value;
+                try {
+                    localStorage.setItem("dq_travel_apikey", apiKey);
+                } catch (e) {}
+                try {
+                    localStorage.setItem("dq_travel_mode", runMode);
+                } catch (e) {}
+                hideSettings();
+                agent.info = {};
+                agent.memory = new AgentMemory();
+                updateSidebar();
+            }
+
+            function resetChat() {
+                agent.info = {};
+                agent.memory = new AgentMemory();
+                if (chat) chat.innerHTML = '<div class="message msg-agent"><div class="agent-avatar">✈</div><div class="bubble">你好！我是你的旅行规划助手。<br><span style="color:var(--muted);">想一起去哪里看看？告诉我你的想法吧～</span></div></div>';
+                updateSidebar();
+            }
+
+            updateSidebar();
+            console.log("[TravelAgent] 初始化完成, runMode=" + runMode);
+
+            // 暴露到全局给 onclick 属性使用
+            window.handleSend = handleSend;
+            window.toggleSidebar = toggleSidebar;
+            window.showSettings = showSettings;
+            window.resetChat = resetChat;
+            window.hideSettings = hideSettings;
+            window.saveSettings = saveSettings;
+        })();
+    </script>
+</body>
+
+</html>

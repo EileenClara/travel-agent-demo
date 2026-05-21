@@ -1,0 +1,2274 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 旅行规划助手 — Agent v4</title>
+    <style>
+         :root {
+            --bg: #fafafa;
+            --surface: #ffffff;
+            --text: #212121;
+            --text-secondary: #616161;
+            --text-muted: #9e9e9e;
+            --border: #e0e0e0;
+            --shadow-1: 0 1px 3px rgba(0, 0, 0, 0.08);
+            --shadow-2: 0 2px 8px rgba(0, 0, 0, 0.10);
+            --shadow-3: 0 4px 16px rgba(0, 0, 0, 0.12);
+            --radius-sm: 8px;
+            --radius: 14px;
+            --radius-lg: 20px;
+            --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        html,
+        body {
+            height: 100%;
+            overflow: hidden;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            -webkit-font-smoothing: antialiased;
+            display: flex;
+            flex-direction: column;
+        }
+        /* ========== Header ========== */
+        
+        header {
+            z-index: 20;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 18px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            box-shadow: var(--shadow-1);
+            flex-shrink: 0;
+        }
+        
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            letter-spacing: -0.2px;
+            color: var(--text);
+        }
+        
+        .brand-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #424242;
+            animation: dotPulse 1.6s infinite;
+        }
+        
+        @keyframes dotPulse {
+            0%,
+            100% {
+                opacity: 0.4;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 1;
+                transform: scale(1.3);
+            }
+        }
+        
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .style-toggle {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.72rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            user-select: none;
+            cursor: pointer;
+        }
+        
+        .theme-checkbox {
+            --toggle-size: 8px;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            width: 6.25em;
+            height: 3.125em;
+            background: -webkit-gradient(linear, left top, right top, color-stop(50%, #efefef), color-stop(50%, #2a2a2a)) no-repeat;
+            background: -o-linear-gradient(left, #efefef 50%, #2a2a2a 50%) no-repeat;
+            background: linear-gradient(to right, #efefef 50%, #2a2a2a 50%) no-repeat;
+            background-size: 205%;
+            background-position: 0;
+            -webkit-transition: 0.4s;
+            -o-transition: 0.4s;
+            transition: 0.4s;
+            border-radius: 99em;
+            position: relative;
+            cursor: pointer;
+            font-size: var(--toggle-size);
+        }
+        
+        .theme-checkbox::before {
+            content: "";
+            width: 2.25em;
+            height: 2.25em;
+            position: absolute;
+            top: 0.438em;
+            left: 0.438em;
+            background: -webkit-gradient(linear, left top, right top, color-stop(50%, #efefef), color-stop(50%, #2a2a2a)) no-repeat;
+            background: -o-linear-gradient(left, #efefef 50%, #2a2a2a 50%) no-repeat;
+            background: linear-gradient(to right, #efefef 50%, #2a2a2a 50%) no-repeat;
+            background-size: 205%;
+            background-position: 100%;
+            border-radius: 50%;
+            -webkit-transition: 0.4s;
+            -o-transition: 0.4s;
+            transition: 0.4s;
+        }
+        
+        .theme-checkbox:checked::before {
+            left: calc(100% - 2.25em - 0.438em);
+            background-position: 0;
+        }
+        
+        .theme-checkbox:checked {
+            background-position: 100%;
+        }
+        
+        .icon-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background var(--transition);
+        }
+        
+        .icon-btn:hover {
+            background: rgba(0, 0, 0, 0.06);
+        }
+        /* ========== Layout ========== */
+        
+        .app {
+            display: flex;
+            flex: 1;
+            min-height: 0;
+        }
+        /* ========== Sidebar ========== */
+        
+        .sidebar {
+            position: fixed;
+            z-index: 30;
+            left: 0;
+            top: 53px;
+            bottom: 0;
+            width: 280px;
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            padding: 18px 14px;
+            overflow-y: auto;
+            transform: translateX(-100%);
+            transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: var(--shadow-3);
+        }
+        
+        .sidebar.open {
+            transform: translateX(0);
+        }
+        
+        .sidebar-backdrop {
+            position: fixed;
+            z-index: 29;
+            inset: 0;
+            top: 53px;
+            background: rgba(0, 0, 0, 0.3);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.24s;
+        }
+        
+        .sidebar-backdrop.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        
+        .sidebar-section {
+            margin-bottom: 18px;
+        }
+        
+        .sidebar-label {
+            font-size: 0.66rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+        
+        .sidebar-value {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+        
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            font-size: 0.78rem;
+        }
+        
+        .info-row span:first-child {
+            color: var(--text-muted);
+        }
+        
+        .info-row span:last-child {
+            font-weight: 500;
+            color: var(--text);
+        }
+        
+        .pref-tag {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.72rem;
+            font-weight: 500;
+            margin: 2px 4px 2px 0;
+            background: #f5f5f5;
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+        }
+        
+        .summary-line {
+            font-size: 0.74rem;
+            color: var(--text-muted);
+            padding: 2px 0;
+            line-height: 1.4;
+        }
+        /* ========== Main Chat ========== */
+        
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+        
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 14px 16px 6px;
+            scroll-behavior: smooth;
+        }
+        
+        .chat-container::-webkit-scrollbar {
+            width: 4px;
+        }
+        
+        .chat-container::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 4px;
+        }
+        
+        .message {
+            margin-bottom: 12px;
+            animation: msgIn 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        @keyframes msgIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .msg-user {
+            display: flex;
+            justify-content: flex-end;
+        }
+        
+        .msg-agent {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .agent-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            background: #424242;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+        }
+        
+        .bubble {
+            padding: 10px 14px;
+            line-height: 1.5;
+            font-size: 0.86rem;
+            word-break: break-word;
+        }
+        
+        .msg-user .bubble {
+            max-width: 78%;
+            border-radius: var(--radius-lg) var(--radius-lg) 4px var(--radius-lg);
+            background: #424242;
+            color: #fff;
+            box-shadow: var(--shadow-1);
+        }
+        
+        .msg-agent .bubble {
+            max-width: 88%;
+            border-radius: var(--radius-lg) var(--radius-lg) var(--radius-lg) 4px;
+            background: var(--surface);
+            color: var(--text);
+            box-shadow: var(--shadow-1);
+            border: 1px solid var(--border);
+        }
+        
+        .tool-call {
+            font-size: 0.74rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            padding: 2px 0 2px 36px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 2px;
+        }
+        
+        .tool-call-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #424242;
+            flex-shrink: 0;
+            animation: dotBounce 1s infinite;
+        }
+        
+        @keyframes dotBounce {
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-5px);
+            }
+        }
+        
+        .plan-card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 18px;
+            box-shadow: var(--shadow-2);
+            margin-top: 2px;
+            border: 1px solid var(--border);
+            line-height: 1.65;
+            font-size: 0.84rem;
+            overflow: hidden;
+        }
+        
+        .plan-card h3 {
+            font-size: 0.98rem;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+        
+        .plan-card h4 {
+            font-size: 0.84rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin: 10px 0 4px;
+        }
+        
+        .plan-card p,
+        .plan-card li {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            margin: 2px 0;
+        }
+        
+        .plan-card ul {
+            margin: 4px 0 8px 16px;
+        }
+        
+        .day-block {
+            margin: 10px 0;
+            padding: 8px 12px;
+            background: #fafafa;
+            border-radius: 6px;
+            border-left: 3px solid var(--primary, #4a6cf7);
+        }
+        
+        .day-heading {
+            display: inline-block;
+            font-weight: 600;
+            color: var(--primary, #4a6cf7);
+            margin-right: 4px;
+            font-size: 0.88rem;
+        }
+        
+        .plan-card table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 8px 0;
+            font-size: 0.8rem;
+        }
+        
+        .plan-card th {
+            background: #f5f5f5;
+            text-align: left;
+            padding: 6px 10px;
+            font-weight: 600;
+            border-bottom: 2px solid var(--border);
+        }
+        
+        .plan-card td {
+            padding: 5px 10px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .plan-card strong {
+            font-weight: 600;
+        }
+        /* ========== Style Selection Buttons ========== */
+        
+        .style-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding: 8px 0 8px 36px;
+            margin-bottom: 8px;
+            animation: msgIn 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .style-btn {
+            padding: 12px 20px;
+            border: unset;
+            border-radius: 15px;
+            color: #212121;
+            z-index: 1;
+            background: #e8e8e8;
+            position: relative;
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+            font-family: inherit;
+            -webkit-box-shadow: 4px 8px 19px -3px rgba(0, 0, 0, 0.27);
+            box-shadow: 4px 8px 19px -3px rgba(0, 0, 0, 0.27);
+            transition: all 250ms;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+        
+        .style-btn::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 0;
+            border-radius: 15px;
+            background-color: #212121;
+            z-index: -1;
+            -webkit-box-shadow: 4px 8px 19px -3px rgba(0, 0, 0, 0.27);
+            box-shadow: 4px 8px 19px -3px rgba(0, 0, 0, 0.27);
+            transition: all 250ms;
+        }
+        
+        .style-btn:hover {
+            color: #e8e8e8;
+        }
+        
+        .style-btn:hover::before {
+            width: 100%;
+        }
+        
+        .style-btn:active {
+            transform: scale(0.95);
+        }
+        /* ========== Weather Cards ========== */
+        
+        .weather-cards-row {
+            display: flex;
+            gap: 12px;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            padding: 4px 0 14px;
+            margin-bottom: 14px;
+            border-bottom: 1px solid var(--border);
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .weather-cards-row::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .weather-card {
+            flex-shrink: 0;
+            width: 185px;
+            background: linear-gradient(160deg, #fffbe6 0%, #fff3cd 50%, #ffeaa7 100%);
+            border-radius: 18px;
+            padding: 14px 12px;
+            scroll-snap-align: start;
+            box-shadow: 0 3px 14px rgba(0, 0, 0, 0.10);
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.2s;
+        }
+        
+        .weather-card:hover {
+            transform: translateY(-2px);
+        }
+        
+        .weather-card::after {
+            content: "";
+            position: absolute;
+            top: -20px;
+            right: -18px;
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.45);
+            pointer-events: none;
+        }
+        
+        .weather-card .wc-date {
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: #b8860b;
+            margin-bottom: 4px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .weather-card .wc-icon {
+            font-size: 2rem;
+            margin: 2px 0 4px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .weather-card .wc-desc {
+            font-size: 0.74rem;
+            color: #8b7355;
+            margin-bottom: 8px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .weather-card .wc-temps {
+            display: flex;
+            align-items: baseline;
+            gap: 6px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .weather-card .wc-high {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #d2691e;
+            line-height: 1;
+        }
+        
+        .weather-card .wc-low {
+            font-size: 0.82rem;
+            color: #a0522d;
+        }
+        
+        .weather-card .wc-extra {
+            font-size: 0.66rem;
+            color: #b8860b;
+            margin-top: 4px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .typing-indicator {
+            display: flex;
+            gap: 4px;
+            padding: 4px 0;
+        }
+        
+        .typing-indicator span {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #bdbdbd;
+            animation: typingBounce 1.2s infinite;
+        }
+        
+        .typing-indicator span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        
+        .typing-indicator span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+        
+        @keyframes typingBounce {
+            0%,
+            60%,
+            100% {
+                transform: translateY(0);
+                opacity: 0.4;
+            }
+            30% {
+                transform: translateY(-6px);
+                opacity: 1;
+            }
+        }
+        /* ========== Input Bar ========== */
+        
+        .input-bar {
+            padding: 6px 14px 10px;
+            display: flex;
+            gap: 8px;
+            align-items: flex-end;
+            flex-shrink: 0;
+        }
+        
+        .input-wrap {
+            flex: 1;
+            display: flex;
+            align-items: flex-end;
+            gap: 6px;
+            background: var(--surface);
+            border-radius: 22px;
+            padding: 4px 4px 4px 14px;
+            box-shadow: var(--shadow-1);
+            border: 1.5px solid transparent;
+            transition: border var(--transition), box-shadow var(--transition);
+        }
+        
+        .input-wrap:focus-within {
+            border-color: #757575;
+            box-shadow: var(--shadow-2);
+        }
+        
+        .input-wrap textarea {
+            flex: 1;
+            border: none;
+            outline: none;
+            font-size: 0.86rem;
+            font-family: inherit;
+            resize: none;
+            background: transparent;
+            padding: 5px 0;
+            color: var(--text);
+            min-height: 20px;
+            max-height: 80px;
+            line-height: 1.4;
+        }
+        
+        .input-wrap textarea::placeholder {
+            color: var(--text-muted);
+        }
+        
+        .send-btn {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            background: #424242;
+            color: #fff;
+            font-size: 0.9rem;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition);
+        }
+        
+        .send-btn:hover {
+            background: #212121;
+        }
+        
+        .send-btn:active {
+            transform: scale(0.93);
+        }
+        
+        .send-btn:disabled {
+            background: #bdbdbd;
+            cursor: not-allowed;
+            transform: none;
+        }
+        /* ========== Modals ========== */
+        
+        .modal-overlay {
+            position: fixed;
+            z-index: 50;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.4);
+            animation: fadeIn 0.2s;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        
+        .modal {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            padding: 24px 20px;
+            width: 400px;
+            max-width: 92vw;
+            box-shadow: var(--shadow-3);
+            animation: scaleIn 0.24s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        @keyframes scaleIn {
+            from {
+                opacity: 0;
+                transform: scale(0.94) translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+        
+        .modal h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 14px;
+        }
+        
+        .modal label {
+            display: block;
+            font-size: 0.76rem;
+            font-weight: 600;
+            margin: 10px 0 4px;
+            color: var(--text-secondary);
+        }
+        
+        .modal input,
+        .modal select {
+            width: 100%;
+            padding: 9px 12px;
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 0.84rem;
+            outline: none;
+            font-family: inherit;
+            background: #fafafa;
+        }
+        
+        .modal input:focus,
+        .modal select:focus {
+            border-color: #616161;
+            background: var(--surface);
+        }
+        
+        .modal .hint {
+            font-size: 0.68rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+        
+        .modal-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+            margin-top: 16px;
+        }
+        
+        .modal-actions button {
+            padding: 8px 18px;
+            border-radius: 18px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.82rem;
+            font-weight: 500;
+            font-family: inherit;
+            transition: all var(--transition);
+        }
+        
+        .btn-ghost {
+            background: #f5f5f5;
+            color: var(--text-secondary);
+        }
+        
+        .btn-ghost:hover {
+            background: #e0e0e0;
+        }
+        
+        .btn-fill {
+            background: #424242;
+            color: #fff;
+        }
+        
+        .btn-fill:hover {
+            background: #212121;
+        }
+        /* conflict modal specific */
+        
+        .conflict-options {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin: 12px 0;
+        }
+        
+        .conflict-options button {
+            text-align: left;
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            border: 1.5px solid var(--border);
+            cursor: pointer;
+            font-size: 0.82rem;
+            font-family: inherit;
+            background: var(--surface);
+            color: var(--text);
+            transition: all var(--transition);
+        }
+        
+        .conflict-options button:hover {
+            border-color: #616161;
+            background: #fafafa;
+        }
+        
+        .conflict-desc {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        /* ========== Responsive ========== */
+        
+        @media (max-width:640px) {
+            .chat-container {
+                padding: 8px 8px 4px;
+            }
+            .bubble {
+                font-size: 0.8rem;
+                padding: 8px 10px;
+            }
+            .sidebar {
+                width: 100%;
+                max-width: 280px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div class="brand">
+            <div class="brand-dot"></div>
+            <span>旅行助手</span>
+        </div>
+        <div class="header-actions">
+            <div class="style-toggle" id="styleToggle" title="切换对话风格">
+                <span id="styleLabel">活泼</span>
+                <input type="checkbox" class="theme-checkbox" id="themeCheckbox">
+            </div>
+            <button class="icon-btn" onclick="toggleSidebar()" title="侧边栏">☰</button>
+            <button class="icon-btn" onclick="showSettings()" title="设置">⚙</button>
+            <button class="icon-btn" onclick="resetChat()" title="新建对话">+</button>
+        </div>
+    </header>
+
+    <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleSidebar()"></div>
+
+    <div class="app">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-section">
+                <div class="sidebar-label">当前行程信息</div>
+                <div class="sidebar-value" id="tripInfo">对话中逐步收集...</div>
+            </div>
+            <div class="sidebar-section">
+                <div class="sidebar-label">用户偏好</div>
+                <div class="sidebar-value" id="preferences">对话中学习...</div>
+            </div>
+            <div class="sidebar-section">
+                <div class="sidebar-label">对话摘要</div>
+                <div class="sidebar-value" id="convSummary">暂无</div>
+            </div>
+        </aside>
+
+        <div class="main">
+            <div class="chat-container" id="chatContainer">
+                <div class="message msg-agent">
+                    <div class="agent-avatar">✦</div>
+                    <div class="bubble">
+                        你好！我是你的AI旅行规划助手。<br>
+                        <span style="color:var(--text-muted);">想去哪里？跟我说说你的想法吧～</span>
+                    </div>
+                </div>
+            </div>
+            <div class="input-bar">
+                <div class="input-wrap">
+                    <textarea id="userInput" rows="1" placeholder="说说你的旅行想法..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();handleSend();}" oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,80)+'px';"></textarea>
+                    <button class="send-btn" id="sendBtn" onclick="handleSend()">↑</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay hidden" id="settingsModal">
+        <div class="modal">
+            <h3>设置</h3>
+            <label>DashScope API Key <span style="color:var(--text-muted);font-weight:400;">（必需）</span></label>
+            <input type="password" id="dashscopeKey" placeholder="sk-...">
+            <div class="hint">用于 AI 对话和规划，qwen-plus 模型</div>
+
+            <label>和风天气 API Key</label>
+            <input type="text" id="qweatherKey" placeholder="4d...">
+            <label>和风天气 API Host</label>
+            <input type="text" id="qweatherHost" placeholder="xxx.re.qweatherapi.com">
+            <div class="hint">控制台 → 设置 → 专属 API Host</div>
+
+            <label>高德地图 API Key</label>
+            <input type="text" id="amapKey" placeholder="1d...">
+            <div class="hint">用于搜索景点、酒店、餐厅</div>
+
+            <div class="modal-actions">
+                <button class="btn-ghost" onclick="hideSettings()">取消</button>
+                <button class="btn-fill" onclick="saveSettings()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Conflict Modal -->
+    <div class="modal-overlay hidden" id="conflictModal">
+        <div class="modal">
+            <h3>偏好冲突</h3>
+            <div class="conflict-desc" id="conflictDesc"></div>
+            <div class="conflict-options" id="conflictOptions"></div>
+        </div>
+    </div>
+
+
+    <script>
+        (function() {
+            "use strict";
+            console.log("[Agent v4] 初始化...");
+
+            // ============================================================
+            // 0. 配置与常量
+            // ============================================================
+            const DASHSCOPE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions";
+            const DDG_URL = "https://api.duckduckgo.com/";
+            const MAX_REACT_ROUNDS = 3;
+
+            function loadSetting(key, fallback) {
+                try {
+                    const v = localStorage.getItem(key);
+                    return v !== null ? v : fallback;
+                } catch (e) {
+                    return fallback;
+                }
+            }
+
+            function saveSetting(key, val) {
+                try {
+                    localStorage.setItem(key, val);
+                } catch (e) {}
+            }
+
+            let apiKeys = {
+                dashscope: loadSetting("dq4_dashscope", "sk-03cb6038c4c64aa19830378735427fe3"),
+                qweather_key: loadSetting("dq4_qw_key", "4dd64cc4f5c7457e811fe054153b1745"),
+                qweather_host: loadSetting("dq4_qw_host", "n273jrgrag.re.qweatherapi.com"),
+                amap: loadSetting("dq4_amap", "1dfe9e58ef7814f3ca493a8657f16faf"),
+            };
+            let personaStyle = loadSetting("dq4_style", "lively");
+
+            function hasRequiredKeys() {
+                return !!apiKeys.dashscope;
+            }
+
+            // ============================================================
+            // 1. 工具定义
+            // ============================================================
+            const TOOLS = [{
+                type: "function",
+                function: {
+                    name: "get_weather",
+                    description: "查询中国国内城市天气预报（仅覆盖国内）。当用户提到国内目的地时调用。国际目的地请用search_web查天气。",
+                    parameters: {
+                        type: "object",
+                        properties: {
+                            city: {
+                                type: "string",
+                                description: "城市名，如'杭州'、'北京'"
+                            }
+                        },
+                        required: ["city"]
+                    }
+                }
+            }, {
+                type: "function",
+                function: {
+                    name: "search_attractions",
+                    description: "搜索中国国内城市的景点/美食/酒店POI（高德地图，仅覆盖国内）。国际目的地请用search_web搜攻略。",
+                    parameters: {
+                        type: "object",
+                        properties: {
+                            city: {
+                                type: "string",
+                                description: "城市名"
+                            },
+                            keywords: {
+                                type: "string",
+                                description: "搜索关键词，如'景点'、'美食'、'酒店'、'购物'，默认'景点'"
+                            },
+                            count: {
+                                type: "integer",
+                                description: "返回数量，默认5"
+                            }
+                        },
+                        required: ["city"]
+                    }
+                }
+            }, {
+                type: "function",
+                function: {
+                    name: "search_web",
+                    description: "通过DuckDuckGo搜索网络信息，获取目的地介绍、旅行攻略、签证政策等。",
+                    parameters: {
+                        type: "object",
+                        properties: {
+                            query: {
+                                type: "string",
+                                description: "搜索关键词或问题"
+                            }
+                        },
+                        required: ["query"]
+                    }
+                }
+            }, {
+                type: "function",
+                function: {
+                    name: "calculate",
+                    description: "进行数学计算，用于预算分配、费用估算、汇率换算等。",
+                    parameters: {
+                        type: "object",
+                        properties: {
+                            expression: {
+                                type: "string",
+                                description: "数学表达式，如'(50000*0.3)/4'"
+                            }
+                        },
+                        required: ["expression"]
+                    }
+                }
+            }, {
+                type: "function",
+                function: {
+                    name: "update_trip_info",
+                    description: "记录用户给出的行程信息。每次用户提到目的地/天数/人数/预算/风格时都必须调用。比如用户说'去杭州'就要记录destination:'杭州'。多个信息时全部填入。只填有变化的字段。",
+                    parameters: {
+                        type: "object",
+                        properties: {
+                            destination: {
+                                type: "string",
+                                description: "目的地城市"
+                            },
+                            days: {
+                                type: "integer",
+                                description: "出行天数"
+                            },
+                            people: {
+                                type: "integer",
+                                description: "出行人数"
+                            },
+                            budget: {
+                                type: "integer",
+                                description: "总预算（元）"
+                            },
+                            style: {
+                                type: "string",
+                                description: "旅行风格，如休闲/人文/特种兵/亲子/蜜月/美食/购物/深度"
+                            },
+                            health: {
+                                type: "string",
+                                description: "健康约束，如恐高/晕车/行动不便/无"
+                            }
+                        },
+                        required: []
+                    }
+                }
+            }, {
+                type: "function",
+                function: {
+                    name: "update_preference",
+                    description: "更新用户长期旅行偏好。当用户明确表达偏好时调用（如'我喜欢轻松一点的旅行'）。",
+                    parameters: {
+                        type: "object",
+                        properties: {
+                            key: {
+                                type: "string",
+                                description: "偏好类型，如travel_style"
+                            },
+                            value: {
+                                type: "string",
+                                description: "偏好值"
+                            }
+                        },
+                        required: ["key", "value"]
+                    }
+                }
+            }, {
+                type: "function",
+                function: {
+                    name: "resolve_conflict",
+                    description: "当用户当前需求和长期偏好发生冲突时调用。不要自己判断，把选择权交给用户。",
+                    parameters: {
+                        type: "object",
+                        properties: {
+                            conflict_description: {
+                                type: "string",
+                                description: "冲突描述，说清楚矛盾是什么"
+                            },
+                            current_preference: {
+                                type: "string",
+                                description: "记忆中用户的长期偏好"
+                            },
+                            user_request: {
+                                type: "string",
+                                description: "用户当前说想要什么"
+                            },
+                            option_a: {
+                                type: "string",
+                                description: "选项A：本次按新需求来，保留旧偏好不变"
+                            },
+                            option_b: {
+                                type: "string",
+                                description: "选项B：永久更新偏好为新的"
+                            },
+                            option_c: {
+                                type: "string",
+                                description: "选项C：用户收回当前要求，维持原偏好"
+                            }
+                        },
+                        required: ["conflict_description", "current_preference", "user_request", "option_a", "option_b",
+                            "option_c"
+                        ]
+                    }
+                }
+            }];
+
+            // ============================================================
+            // 2. AgentMemory
+            // ============================================================
+            class AgentMemory {
+                constructor() {
+                    this.messages = [];
+                    this.tripInfo = {};
+                    this.preferences = {};
+                    this.weatherData = null;
+                    this.load();
+                }
+                load() {
+                    try {
+                        const raw = localStorage.getItem("dq4_memory");
+                        if (raw) {
+                            const data = JSON.parse(raw);
+                            this.messages = data.messages || [];
+                            this.tripInfo = data.tripInfo || {};
+                            this.preferences = data.preferences || {};
+                            this.weatherData = data.weatherData || null;
+                        }
+                    } catch (e) { /* ignore */ }
+                }
+                save() {
+                    try {
+                        localStorage.setItem("dq4_memory", JSON.stringify({
+                            messages: this.messages.slice(-30),
+                            tripInfo: this.tripInfo,
+                            preferences: this.preferences,
+                            weatherData: this.weatherData,
+                        }));
+                    } catch (e) { /* ignore */ }
+                }
+                addMessage(role, content, toolCalls) {
+                    const msg = {
+                        role,
+                        content
+                    };
+                    if (toolCalls) msg.tool_calls = toolCalls;
+                    this.messages.push(msg);
+                    this.save();
+                }
+                addToolResult(toolCallId, content) {
+                    this.messages.push({
+                        role: "tool",
+                        content,
+                        tool_call_id: toolCallId
+                    });
+                    this.save();
+                }
+                updateTripInfo(updates) {
+                    Object.keys(updates).forEach(k => {
+                        if (updates[k] !== undefined && updates[k] !== null && updates[k] !== "") {
+                            this.tripInfo[k] = updates[k];
+                        }
+                    });
+                    this.save();
+                }
+                updatePreference(key, value) {
+                    this.preferences[key] = value;
+                    this.save();
+                }
+                getMemoryContext() {
+                    let ctx = "";
+                    const tripKeys = Object.keys(this.tripInfo);
+                    if (tripKeys.length > 0) {
+                        ctx += "已收集的行程信息：\n";
+                        const labels = {
+                            destination: "目的地",
+                            days: "天数",
+                            people: "人数",
+                            budget: "预算",
+                            style: "风格",
+                            health: "健康"
+                        };
+                        tripKeys.forEach(k => {
+                            if (this.tripInfo[k]) {
+                                let v = this.tripInfo[k];
+                                if (k === "budget") v = v.toLocaleString() + "元";
+                                if (k === "days") v = v + "天";
+                                if (k === "people") v = v + "人";
+                                ctx += `- ${labels[k] || k}: ${v}\n`;
+                            }
+                        });
+                    }
+                    const prefKeys = Object.keys(this.preferences);
+                    if (prefKeys.length > 0) {
+                        ctx += "用户长期偏好：\n";
+                        prefKeys.forEach(k => {
+                            ctx += `- ${k}: ${this.preferences[k]}\n`;
+                        });
+                    }
+                    return ctx;
+                }
+                getRecentMessages(count) {
+                    return this.messages.slice(-count);
+                }
+                clear() {
+                    this.messages = [];
+                    this.tripInfo = {};
+                    this.preferences = {};
+                    this.weatherData = null;
+                    this.save();
+                }
+            }
+
+            // ============================================================
+            // 3. 工具执行器
+            // ============================================================
+            const ToolExecutors = {
+                async get_weather(args) {
+                    const city = args.city;
+                    if (!apiKeys.qweather_key || !apiKeys.qweather_host) {
+                        return `天气查询未配置（需要和风天气 API Key 和 Host）。建议用户自行查看 ${city} 天气。`;
+                    }
+                    // Step 1: 城市查询 → location ID
+                    const geoUrl = `https://${apiKeys.qweather_host}/geo/v2/city/lookup`;
+                    const geoResp = await fetch(
+                        `${geoUrl}?location=${encodeURIComponent(city)}&key=${apiKeys.qweather_key}`
+                    );
+                    if (!geoResp.ok) throw new Error(`城市查询失败: ${geoResp.status}`);
+                    const geoData = await geoResp.json();
+                    if (geoData.code !== "200" || !geoData.location || geoData.location.length === 0) {
+                        return `未找到"${city}"的天气数据，请检查城市名。`;
+                    }
+                    // Check if the top result looks unrelated to the query (e.g. "马来西亚" → "Valencia")
+                    const hasChinese = /[一-鿿]/.test(city);
+                    const topName = geoData.location[0].name;
+                    const topCountry = geoData.location[0].country || "";
+                    if (hasChinese && !/[一-鿿]/.test(topName) && !/[一-鿿]/.test(topCountry)) {
+                        // QWeather returned a non-Chinese result for a Chinese query — likely wrong
+                        console.log("[Weather] QWeather mismatch for:", city, "got:", topName, topCountry);
+                        return `和风天气暂不支持"${city}"（当前仅覆盖国内城市）。建议通过 search_web 查询当地天气。`;
+                    }
+                    const locId = geoData.location[0].id;
+                    const locName = geoData.location[0].name;
+                    // Step 2: 7天预报
+                    const weatherUrl = `https://${apiKeys.qweather_host}/v7/weather/7d`;
+                    const wResp = await fetch(
+                        `${weatherUrl}?location=${locId}&key=${apiKeys.qweather_key}`
+                    );
+                    if (!wResp.ok) throw new Error(`天气查询失败: ${wResp.status}`);
+                    const wData = await wResp.json();
+                    if (wData.code !== "200") return `天气查询失败: ${wData.code}`;
+                    const days = wData.daily || [];
+                    // Store structured weather data for plan cards
+                    memory.weatherData = {
+                        city: locName,
+                        days: days.map(d => ({
+                            date: d.fxDate,
+                            textDay: d.textDay,
+                            tempMax: d.tempMax,
+                            tempMin: d.tempMin,
+                            humidity: d.humidity,
+                            windDirDay: d.windDirDay,
+                            windScaleDay: d.windScaleDay,
+                        })),
+                    };
+                    const lines = [`${locName}未来${days.length}天天气预报：`];
+                    days.forEach(d => {
+                        lines.push(
+                            `${d.fxDate} ${d.textDay} ${d.tempMin}~${d.tempMax}°C ${d.windDirDay}风${d.windScaleDay}级 湿度${d.humidity}%`
+                        );
+                    });
+                    return lines.join("\n");
+                },
+
+                async search_attractions(args) {
+                    const city = args.city;
+                    const keywords = args.keywords || "景点";
+                    const count = args.count || 5;
+                    if (!apiKeys.amap) {
+                        return `POI搜索未配置（需要高德地图 API Key）。建议用户自行搜索 ${city} ${keywords}。`;
+                    }
+                    const url =
+                        `https://restapi.amap.com/v3/place/text?key=${apiKeys.amap}&keywords=${encodeURIComponent(keywords)}&city=${encodeURIComponent(city)}&offset=${count}&extensions=all`;
+                    const resp = await fetch(url);
+                    if (!resp.ok) throw new Error(`POI搜索失败: ${resp.status}`);
+                    const data = await resp.json();
+                    if (data.status !== "1") return `POI搜索失败: ${data.info}`;
+                    const pois = data.pois || [];
+                    if (pois.length === 0) {
+                        // Fallback: DuckDuckGo search for international destinations
+                        try {
+                            const fallback = await ToolExecutors.search_web({
+                                query: `${city} ${keywords} 推荐 景点 游玩攻略`
+                            });
+                            return `高德地图未收录"${city}"的${keywords}数据。以下为网络搜索结果：\n${fallback}`;
+                        } catch (e) {
+                            return `${city} 未搜到与"${keywords}"相关的结果（高德地图主要覆盖国内）。`;
+                        }
+                    }
+                    const lines = [`${city} "${keywords}" 搜索结果 (${Math.min(pois.length, count)}条)：`];
+                    pois.slice(0, count).forEach((p, i) => {
+                        const rating = p.biz_ext && p.biz_ext.rating ? ` ⭐${p.biz_ext.rating}` : "";
+                        const cost = p.biz_ext && p.biz_ext.cost ? ` 均价${p.biz_ext.cost}元` : "";
+                        const addr = p.address ? ` — ${p.address}` : "";
+                        lines.push(`${i + 1}. ${p.name}${rating}${cost}${addr}`);
+                    });
+                    return lines.join("\n");
+                },
+
+                async search_web(args) {
+                    const query = args.query;
+                    try {
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 5000);
+                        const url =
+                            `${DDG_URL}?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1&t=${Date.now()}`;
+                        const resp = await fetch(url, {
+                            signal: controller.signal
+                        });
+                        clearTimeout(timeoutId);
+                        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                        const data = await resp.json();
+                        const parts = [];
+                        if (data.Heading) parts.push(`【${data.Heading}】`);
+                        if (data.AbstractText) {
+                            parts.push(data.AbstractText.slice(0, 500));
+                            if (data.AbstractURL) parts.push(`来源: ${data.AbstractURL}`);
+                        }
+                        const topics = data.RelatedTopics || [];
+                        if (topics.length > 0) {
+                            const topicTexts = topics.slice(0, 5)
+                                .map(t => t.Text)
+                                .filter(Boolean)
+                                .map(t => t.replace(/<[^>]*>/g, "").trim().slice(0, 200));
+                            if (topicTexts.length > 0) parts.push("相关信息:\n" + topicTexts.map((t, i) => `${i+1}. ${t}`).join(
+                                "\n"));
+                        }
+                        return parts.length > 0 ? parts.join("\n\n") :
+                            `关于"${query}"的网络搜索未返回有效结果，建议使用更具体的关键词重试。`;
+                    } catch (e) {
+                        return `网络搜索暂时不可用 (${e.message})。建议基于已有知识回复用户。`;
+                    }
+                },
+
+                calculate(args) {
+                    const expr = args.expression;
+                    if (!/^[\d+\-*/().%\s]+$/.test(expr)) return `无效的数学表达式: ${expr}`;
+                    try {
+                        const result = Function('"use strict"; return (' + expr + ")")();
+                        if (typeof result !== "number" || !isFinite(result)) return `计算错误: ${expr}`;
+                        const formatted = Number.isInteger(result) ? result : +result.toFixed(2);
+                        return `计算结果: ${expr} = ${formatted}`;
+                    } catch (e) {
+                        return `计算错误: ${expr} (${e.message})`;
+                    }
+                },
+
+                update_trip_info(args) {
+                    const updates = {};
+                    ["destination", "days", "people", "budget", "style", "health"].forEach(k => {
+                        if (args[k] !== undefined && args[k] !== null && args[k] !== "") updates[k] = args[k];
+                    });
+                    if (Object.keys(updates).length > 0) {
+                        memory.updateTripInfo(updates);
+                        updateSidebarUI();
+                    }
+                    return "行程信息已更新。";
+                },
+
+                update_preference(args) {
+                    if (args.key && args.value) {
+                        memory.updatePreference(args.key, args.value);
+                        updateSidebarUI();
+                    }
+                    return "偏好已更新。";
+                },
+
+                resolve_conflict(args) {
+                    // 这个工具不在此处执行——UI 层会拦截并弹窗
+                    return {
+                        __conflict: true,
+                        ...args
+                    };
+                },
+            };
+
+            // ============================================================
+            // 4. TravelAgent — LLM + ReAct 循环
+            // ============================================================
+            const memory = new AgentMemory();
+
+            function buildSystemPrompt() {
+                const isPro = personaStyle === "professional";
+                const styleGuidelines = isPro ?
+                    "使用正式专业的语气回复。称呼用户为'您'。不使用表情符号。" :
+                    "使用温暖口语化的语气回复。称呼用户为'你'。可以适当使用1-2个表情符号。";
+                const memoryCtx = memory.getMemoryContext();
+
+                return `你是"小旅"，一个AI旅行规划助手。你说话非常简洁。
+
+## 回复规则（严格遵守）
+收到用户消息后，先调用相关工具，然后根据信息是否齐全，选择以下2种回复之一：
+
+1. 信息不全 → 1句话回应 + 1个问题（只能问1个！）
+   范例："杭州这几天有雨带伞哦～ 几个人去呀？"
+   范例："好的记下了～ 预算多少呢？"
+
+2. 信息齐全 → 不要再问问题！直接调 search_attractions 搜景点和美食，生成完整方案。
+   方案用自然语言段落写，每天行程必须独立成段，以"第一天："开头，段间用空行分隔。
+   示例格式：
+   "第一天：上午xxx，下午xxx。推荐美食：xxx。
+
+   第二天：上午xxx，下午xxx。推荐美食：xxx。"
+   禁止 markdown 表格符号（| # ## ** -等）。
+   方案结尾不要提问，自然收尾即可。
+
+## 信息齐全的判断标准
+目的地 + 天数 + 人数 + 风格 四个字段都有值 = 信息齐全。
+此时你必须立即生成方案，不许继续追问"住什么类型的酒店""想去哪个区"之类的问题。
+
+## 工具调用规则
+- 用户提到城市 → 同时调 update_trip_info 和 get_weather
+- 用户提天数/人数/预算/风格 → 调 update_trip_info
+- 单条消息含多个信息 → 全部填入 update_trip_info
+- 国际目的地（非中国城市）→ get_weather和search_attractions仅覆盖国内，改用search_web搜天气和攻略
+- search_web可能因网络限制不可用，此时请基于自身知识直接生成方案
+- 生成方案前 → 国内用search_attractions搜景点美食，国际用search_web搜攻略（失败则自编）
+
+                ${styleGuidelines}
+
+                ${memoryCtx}`;
+            }
+
+            function buildMessages() {
+                const systemMsg = {
+                    role: "system",
+                    content: buildSystemPrompt()
+                };
+                const recent = memory.getRecentMessages(20);
+                return [systemMsg, ...recent];
+            }
+
+            async function callLLM(messages) {
+                if (!apiKeys.dashscope) {
+                    throw new Error("请先设置 DashScope API Key（点击右上角 ⚙）");
+                }
+                const payload = {
+                    model: "qwen-plus",
+                    messages: messages,
+                    tools: TOOLS,
+                    temperature: personaStyle === "professional" ? 0.3 : 0.6,
+                    max_tokens: 2000,
+                };
+                const resp = await fetch(DASHSCOPE_URL, {
+                    method: "POST",
+                    headers: {
+                        "Authorization": "Bearer " + apiKeys.dashscope,
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(payload),
+                });
+                if (!resp.ok) {
+                    const errText = await resp.text().catch(() => "");
+                    throw new Error(`API 错误 (${resp.status}): ${errText.slice(0, 200)}`);
+                }
+                return resp.json();
+            }
+
+            async function processMessage(userText, onToolCall, onConflict) {
+                memory.addMessage("user", userText);
+
+                const messages = buildMessages();
+
+                for (let round = 0; round < MAX_REACT_ROUNDS; round++) {
+                    const data = await callLLM(messages);
+                    const choice = data.choices[0];
+                    const msg = choice.message;
+
+                    if (!msg) throw new Error("LLM 返回为空");
+
+                    // 有 tool_calls
+                    if (msg.tool_calls && msg.tool_calls.length > 0) {
+                        messages.push({
+                            role: "assistant",
+                            content: msg.content || null,
+                            tool_calls: msg.tool_calls,
+                        });
+
+                        for (const tc of msg.tool_calls) {
+                            const fn = tc.function;
+                            const toolName = fn.name;
+                            let toolArgs;
+                            try {
+                                toolArgs = JSON.parse(fn.arguments);
+                            } catch (e) {
+                                toolArgs = {};
+                            }
+
+                            console.log("[Agent] tool call:", toolName, toolArgs);
+
+                            // 冲突检测——特殊处理（由弹窗处理 UI，不显式添加工具调用指示器）
+                            if (toolName === "resolve_conflict") {
+                                const userChoice = await onConflict(toolArgs);
+                                messages.push({
+                                    role: "tool",
+                                    content: `用户选择: ${userChoice}`,
+                                    tool_call_id: tc.id,
+                                });
+                                memory.addToolResult(tc.id, `用户选择: ${userChoice}`);
+                                continue;
+                            }
+
+                            // 普通工具执行
+                            if (onToolCall) onToolCall(toolName, toolArgs);
+
+                            let result;
+                            try {
+                                const executor = ToolExecutors[toolName];
+                                if (!executor) {
+                                    result = `工具 "${toolName}" 不存在`;
+                                } else {
+                                    result = await executor(toolArgs);
+                                }
+                            } catch (e) {
+                                result = `工具执行失败: ${e.message}`;
+                            }
+
+                            // update_trip_info / update_preference 需要反映到侧边栏
+                            if (toolName === "update_trip_info" || toolName === "update_preference") {
+                                updateSidebarUI();
+                            }
+
+                            const resultStr = typeof result === "string" ? result : JSON.stringify(result);
+                            console.log("[Agent] tool result:", resultStr.slice(0, 150));
+
+                            messages.push({
+                                role: "tool",
+                                content: resultStr,
+                                tool_call_id: tc.id,
+                            });
+                            memory.addToolResult(tc.id, resultStr);
+                        }
+                        // 继续循环，让 LLM 处理工具结果
+                        continue;
+                    }
+
+                    // 没有 tool_calls——最终回复
+                    const responseText = msg.content || "";
+                    memory.addMessage("assistant", responseText);
+                    return {
+                        type: "response",
+                        text: responseText
+                    };
+                }
+
+                // 超出轮次，强制生成回复
+                console.log("[Agent] ReAct 轮次用尽，请求最终回复");
+                const finalMessages = [...messages, {
+                    role: "user",
+                    content: "请基于已获取的信息，直接给出旅行方案或回复，不要再调用工具。"
+                }];
+                const finalData = await callLLM(finalMessages);
+                const finalText = (finalData.choices[0] && finalData.message && finalData.content) || "抱歉，生成方案时遇到了问题，请重试。";
+                memory.addMessage("assistant", finalText);
+                return {
+                    type: "response",
+                    text: finalText
+                };
+            }
+
+            // ============================================================
+            // 5. UI 控制器
+            // ============================================================
+            const $ = id => document.getElementById(id);
+            const chat = $("chatContainer");
+            const input = $("userInput");
+            const sendBtn = $("sendBtn");
+
+            function esc(s) {
+                if (s == null) return "";
+                const d = document.createElement("div");
+                d.textContent = String(s);
+                return d.innerHTML;
+            }
+
+            function nl2br(s) {
+                return esc(s).replace(/\n/g, "<br>");
+            }
+
+            function scrollDown() {
+                if (chat) chat.scrollTop = chat.scrollHeight;
+            }
+
+            function addUserMsg(text) {
+                if (!chat) return;
+                const el = document.createElement("div");
+                el.className = "message msg-user";
+                el.innerHTML = '<div class="bubble">' + esc(text) + '</div>';
+                chat.appendChild(el);
+                scrollDown();
+            }
+
+            function addToolCallMsg(toolName, toolArgs) {
+                if (!chat) return;
+                const labelMap = {
+                    get_weather: "查询天气",
+                    search_attractions: "搜索景点",
+                    search_web: "搜索网络",
+                    calculate: "计算中",
+                    update_trip_info: "更新行程",
+                    update_preference: "更新偏好",
+                };
+                const label = labelMap[toolName] || toolName;
+                const detail = toolArgs ? (toolArgs.city || toolArgs.query || toolArgs.expression || "") : "";
+                const el = document.createElement("div");
+                el.className = "tool-call";
+                el.innerHTML =
+                    '<span class="tool-call-dot"></span>' + esc(label) + (detail ? "：" + esc(detail) : "");
+                chat.appendChild(el);
+                scrollDown();
+            }
+
+            function showTyping() {
+                if (!chat) return {
+                    setText() {},
+                    remove() {}
+                };
+                const el = document.createElement("div");
+                el.className = "message msg-agent";
+                el.id = "typingIndicator";
+                el.innerHTML =
+                    '<div class="agent-avatar">✦</div><div class="bubble"><div class="typing-indicator"><span></span><span></span><span></span></div></div>';
+                chat.appendChild(el);
+                scrollDown();
+                return {
+                    setText(t) {
+                        const bubble = el.querySelector(".bubble");
+                        if (bubble) bubble.textContent = t;
+                    },
+                    remove() {
+                        if (el.parentNode) el.remove();
+                    },
+                };
+            }
+
+            function addAgentMsg(text) {
+                if (!chat) return;
+                const el = document.createElement("div");
+                el.className = "message msg-agent";
+                el.innerHTML = '<div class="agent-avatar">✦</div><div class="bubble">' + nl2br(text) + '</div>';
+                chat.appendChild(el);
+                scrollDown();
+            }
+
+            // ---- 风格选择按钮 ----
+            function checkAndShowStyleButtons() {
+                const info = memory.tripInfo;
+                if (info.style) return;
+                if (document.querySelector(".style-buttons")) return;
+
+                const container = document.createElement("div");
+                container.className = "style-buttons";
+
+                const buttonDefs = [{
+                    emoji: "🏖️",
+                    label: "休闲度假",
+                    style: "休闲"
+                }, {
+                    emoji: "📚",
+                    label: "人文历史",
+                    style: "人文"
+                }, {
+                    emoji: "⚡",
+                    label: "特种兵打卡",
+                    style: "特种兵"
+                }, {
+                    emoji: "👨‍👩‍👧",
+                    label: "亲子出游",
+                    style: "亲子"
+                }, {
+                    emoji: "🍜",
+                    label: "美食之旅",
+                    style: "美食"
+                }, ];
+
+                buttonDefs.forEach(def => {
+                    const btn = document.createElement("button");
+                    btn.className = "style-btn";
+                    btn.textContent = def.emoji + " " + def.label;
+                    btn.addEventListener("click", () => {
+                        handleStyleSelection(def.style, def.label);
+                    });
+                    container.appendChild(btn);
+                });
+
+                if (chat) {
+                    chat.appendChild(container);
+                    scrollDown();
+                }
+            }
+
+            async function handleStyleSelection(styleVal, styleLabel) {
+                memory.updateTripInfo({
+                    style: styleVal
+                });
+                updateSidebarUI();
+
+                // Remove style button containers
+                document.querySelectorAll(".style-buttons").forEach(el => el.remove());
+
+                // Show confirmation bubble
+                const confirmEl = document.createElement("div");
+                confirmEl.className = "message msg-user";
+                confirmEl.innerHTML = '<div class="bubble">已选择：' + esc(styleLabel) + '</div>';
+                if (chat) {
+                    chat.appendChild(confirmEl);
+                    scrollDown();
+                }
+
+                // If all info complete, auto-generate plan
+                const info = memory.tripInfo;
+                if (!info.destination || !info.days || !info.people || !info.style) return;
+
+                const typing = showTyping();
+                try {
+                    const result = await processMessage(
+                        "请根据当前的行程信息生成详细旅行计划。",
+                        (toolName, toolArgs) => {
+                            typing.setText("正在" + toolName + "...");
+                            addToolCallMsg(toolName, toolArgs);
+                        },
+                        async(conflictArgs) => {
+                            typing.setText("检测到偏好冲突，请选择...");
+                            const choice = await showConflictDialog(conflictArgs);
+                            typing.setText("");
+                            return choice;
+                        }
+                    );
+                    typing.remove();
+                    if (result.type === "response") {
+                        const isPlan = result.text.length > 100;
+                        if (isPlan) {
+                            addPlanCard(result.text);
+                        } else {
+                            addAgentMsg(result.text);
+                        }
+                    }
+                    updateSidebarUI();
+                } catch (err) {
+                    console.error("[UI] 自动生成计划错误:", err);
+                    typing.remove();
+                    addAgentMsg("抱歉，自动生成计划时出了点问题：" + (err.message || err));
+                }
+            }
+
+            function renderPlanHTML(text) {
+                // Convert markdown-ish text to HTML for plan display
+                let lines = text.split("\n");
+                let html = "";
+                let inTable = false;
+                let tableRows = [];
+
+                for (let i = 0; i < lines.length; i++) {
+                    let line = lines[i].trim();
+                    if (!line) {
+                        html += "<br>";
+                        continue;
+                    }
+
+                    // Table: line contains |
+                    if (line.includes("|")) {
+                        let cells = line.split("|").map(c => c.trim()).filter(c => c);
+                        if (cells.length >= 2) {
+                            if (!inTable) {
+                                inTable = true;
+                                tableRows = [];
+                            }
+                            // skip separator rows like |---|----|
+                            if (/^[-:]+$/.test(cells[0])) continue;
+                            let tag = tableRows.length === 0 ? "th" : "td";
+                            let rowHTML = "<tr>" + cells.map(c => {
+                                c = c.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+                                return "<" + tag + ">" + c + "</" + tag + ">";
+                            }).join("") + "</tr>";
+                            tableRows.push(rowHTML);
+                            continue;
+                        }
+                    }
+
+                    // End table
+                    if (inTable) {
+                        html += "<table>" + tableRows.join("") + "</table>";
+                        inTable = false;
+                        tableRows = [];
+                    }
+
+                    // Headings
+                    if (/^### /.test(line)) {
+                        html += "<h4>" + esc(line.replace(/^### /, "")) + "</h4>";
+                    } else if (/^## /.test(line)) {
+                        html += "<h3>" + esc(line.replace(/^## /, "")) + "</h3>";
+                    } else if (/^# /.test(line)) {
+                        html += "<h3>" + esc(line.replace(/^# /, "")) + "</h3>";
+                    }
+                    // List items
+                    else if (/^[-*] /.test(line)) {
+                        let txt = line.replace(/^[-*] /, "");
+                        txt = txt.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+                        html += "· " + txt + "<br>";
+                    }
+                    // Numbered list
+                    else if (/^\d+[\.\)] /.test(line)) {
+                        let num = line.match(/^(\d+[\.\)]) /)[1];
+                        let txt = line.replace(/^\d+[\.\)] /, "");
+                        txt = txt.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+                        html += num + " " + txt + "<br>";
+                    }
+                    // Day heading: "第一天：xxx" or "第1天：xxx"
+                    else if (/^第[一二三四五六七八九十\d]+天[：:]/.test(line)) {
+                        let m = line.match(/^(第[一二三四五六七八九十\d]+天[：:])(.*)/);
+                        html += '<div class="day-block"><strong class="day-heading">' + esc(m[1]) + '</strong>' + esc(m[2]) + '</div>';
+                    }
+                    // Regular text
+                    else {
+                        line = line.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+                        html += line + "<br>";
+                    }
+                }
+
+                // Close remaining table
+                if (inTable) {
+                    html += "<table>" + tableRows.join("") + "</table>";
+                }
+
+                return html;
+            }
+
+            function buildWeatherCardsHTML(weatherData) {
+                if (!weatherData || !weatherData.days || !weatherData.days.length) return "";
+
+                const iconMap = {
+                    "晴": "☀️",
+                    "少云": "🌤️",
+                    "晴间多云": "⛅",
+                    "多云": "⛅",
+                    "阴": "☁️",
+                    "阵雨": "🌦️",
+                    "雷阵雨": "⛈️",
+                    "小雨": "🌧️",
+                    "中雨": "🌧️",
+                    "大雨": "🌧️",
+                    "暴雨": "🌧️",
+                    "小雪": "🌨️",
+                    "中雪": "🌨️",
+                    "大雪": "🌨️",
+                    "雾": "🌫️",
+                    "霾": "🌫️",
+                    "浮尘": "🌬️",
+                    "扬沙": "🌬️",
+                };
+
+                function getIcon(textDay) {
+                    if (iconMap[textDay]) return iconMap[textDay];
+                    for (const [key, icon] of Object.entries(iconMap)) {
+                        if (textDay && textDay.includes(key)) return icon;
+                    }
+                    return "🌡️";
+                }
+
+                function formatDate(fxDate) {
+                    if (!fxDate) return "";
+                    const parts = fxDate.split("-");
+                    if (parts.length === 3) {
+                        return parseInt(parts[1], 10) + "/" + parseInt(parts[2], 10);
+                    }
+                    return fxDate;
+                }
+
+                let cardsHTML = "";
+                weatherData.days.forEach(d => {
+                    const icon = getIcon(d.textDay);
+                    const dateStr = formatDate(d.date || d.fxDate);
+                    cardsHTML +=
+                        '<div class="weather-card">' +
+                        '<div class="wc-date">' + esc(dateStr) + '</div>' +
+                        '<div class="wc-icon">' + icon + '</div>' +
+                        '<div class="wc-desc">' + esc(d.textDay || "") + '</div>' +
+                        '<div class="wc-temps">' +
+                        '<span class="wc-high">' + esc(String(d.tempMax)) + '°</span>' +
+                        '<span class="wc-low">/' + esc(String(d.tempMin)) + '°</span>' +
+                        '</div>' +
+                        '<div class="wc-extra">💧 ' + esc(String(d.humidity || "")) + '%  🌬 ' + esc((d.windDirDay || "") + (d.windScaleDay || "") + '级') + '</div>' +
+                        '</div>';
+                });
+
+                return '<div class="weather-cards-row">' + cardsHTML + '</div>';
+            }
+
+            function addPlanCard(text) {
+                if (!chat) return;
+                let weatherHTML = "";
+                if (memory.weatherData && memory.weatherData.days && memory.weatherData.days.length > 0) {
+                    weatherHTML = buildWeatherCardsHTML(memory.weatherData);
+                }
+                const el = document.createElement("div");
+                el.className = "message msg-agent";
+                el.innerHTML = '<div class="agent-avatar">✦</div><div class="plan-card">' + weatherHTML + renderPlanHTML(text) + '</div>';
+                chat.appendChild(el);
+                scrollDown();
+            }
+
+            // ---- 冲突弹窗 ----
+            function showConflictDialog(conflictArgs) {
+                return new Promise(resolve => {
+                    const overlay = $("conflictModal");
+                    const desc = $("conflictDesc");
+                    const options = $("conflictOptions");
+                    if (!overlay || !desc || !options) {
+                        resolve("用户选择: 按新需求来，保留旧偏好");
+                        return;
+                    }
+
+                    desc.innerHTML = nl2br(
+                        `偏好记录：${conflictArgs.current_preference}\n` +
+                        `当前要求：${conflictArgs.user_request}\n\n` +
+                        conflictArgs.conflict_description
+                    );
+
+                    options.innerHTML = "";
+                    const btns = [{
+                        text: conflictArgs.option_a,
+                        value: "A: 本次按新需求，保留旧偏好"
+                    }, {
+                        text: conflictArgs.option_b,
+                        value: "B: 永久更新偏好"
+                    }, {
+                        text: conflictArgs.option_c,
+                        value: "C: 维持原偏好，收回当前要求"
+                    }, ];
+                    btns.forEach(b => {
+                        const btn = document.createElement("button");
+                        btn.textContent = b.text;
+                        btn.onclick = () => {
+                            overlay.classList.add("hidden");
+                            resolve(b.value);
+                        };
+                        options.appendChild(btn);
+                    });
+
+                    overlay.classList.remove("hidden");
+                });
+            }
+
+            // ---- 侧边栏 ----
+            function updateSidebarUI() {
+                const infoDiv = $("tripInfo");
+                if (infoDiv) {
+                    const info = memory.tripInfo;
+                    const labels = {
+                        destination: "目的地",
+                        days: "天数",
+                        people: "人数",
+                        budget: "预算",
+                        style: "风格",
+                        health: "健康"
+                    };
+                    const rows = [];
+                    Object.keys(info).forEach(k => {
+                        if (info[k]) {
+                            let display = info[k];
+                            if (k === "budget") display = Number(info[k]).toLocaleString() + " 元";
+                            if (k === "days") display = info[k] + " 天";
+                            if (k === "people") display = info[k] + " 人";
+                            rows.push(
+                                '<div class="info-row"><span>' + labels[k] +
+                                '</span><span>' + display + '</span></div>');
+                        }
+                    });
+                    infoDiv.innerHTML = rows.length ? rows.join("") :
+                        '<span style="color:var(--text-muted);font-size:0.78rem;">对话中逐步收集...</span>';
+                }
+
+                const prefDiv = $("preferences");
+                if (prefDiv) {
+                    const tags = [];
+                    Object.keys(memory.preferences).forEach(k => {
+                        if (memory.preferences[k]) {
+                            tags.push('<span class="pref-tag">' + esc(memory.preferences[k]) + '</span>');
+                        }
+                    });
+                    prefDiv.innerHTML = tags.length ? tags.join("") :
+                        '<span style="color:var(--text-muted);font-size:0.78rem;">对话中学习...</span>';
+                }
+
+                const sumDiv = $("convSummary");
+                if (sumDiv) {
+                    const msgs = memory.messages;
+                    if (!msgs.length) {
+                        sumDiv.innerHTML = '<span style="color:var(--text-muted);font-size:0.78rem;">暂无</span>';
+                    } else {
+                        const displayMsgs = msgs.filter(m => m.role === "user" || m.role === "assistant").slice(-6);
+                        sumDiv.innerHTML = displayMsgs.map(m => {
+                            const role = m.role === "user" ? "用户" : "助手";
+                            const preview = (m.content || "").slice(0, 36);
+                            return '<div class="summary-line"><strong>' + role + ':</strong> ' + esc(
+                                preview) + (m.content && m.content.length > 36 ? "…" : "") + '</div>';
+                        }).join("");
+                    }
+                }
+            }
+
+            // ---- 发送 ----
+            async function sendMessage() {
+                if (!input || !sendBtn) return;
+                const text = input.value.trim();
+                if (!text) return;
+
+                console.log("[UI] 用户输入:", text);
+                input.value = "";
+                input.style.height = "auto";
+                input.disabled = true;
+                sendBtn.disabled = true;
+
+                addUserMsg(text);
+                const typing = showTyping();
+                const toolCallEls = [];
+
+                try {
+                    const result = await processMessage(text,
+                        (toolName, toolArgs) => {
+                            // 工具调用回调
+                            typing.setText("正在" + toolName + "...");
+                            addToolCallMsg(toolName, toolArgs);
+                        },
+                        async(conflictArgs) => {
+                            // 冲突回调——弹窗覆盖在 typing 之上，不销毁 typing
+                            typing.setText("检测到偏好冲突，请选择...");
+                            const choice = await showConflictDialog(conflictArgs);
+                            typing.setText("");
+                            return choice;
+                        }
+                    );
+
+                    typing.remove();
+
+                    if (result.type === "response") {
+                        const info = memory.tripInfo;
+                        const hasBasics = info.destination && info.days && info.people;
+                        const hasStyle = !!info.style;
+                        const needStyleButtons = hasBasics && !hasStyle;
+
+                        if (needStyleButtons) {
+                            checkAndShowStyleButtons();
+                        }
+                        // 四要素齐全 → 展示方案卡片（含天气卡片）
+                        if (hasBasics && hasStyle) {
+                            addPlanCard(result.text);
+                        } else {
+                            // 信息不全 → 展示文字消息
+                            addAgentMsg(result.text);
+                        }
+
+                    }
+
+                    updateSidebarUI();
+                } catch (err) {
+                    console.error("[UI] 错误:", err);
+                    typing.remove();
+                    addAgentMsg("抱歉，出了点问题：" + (err.message || err) +
+                        "\n\n请检查网络和 API 设置后重试。");
+                } finally {
+                    input.disabled = false;
+                    sendBtn.disabled = false;
+                    input.focus();
+                }
+            }
+
+            function handleSend() {
+                sendMessage().catch(e => console.error("[handleSend]", e));
+            }
+
+            // ---- 侧边栏 ----
+            function toggleSidebar() {
+                const sb = $("sidebar");
+                const bd = $("sidebarBackdrop");
+                if (sb) sb.classList.toggle("open");
+                if (bd) bd.classList.toggle("visible");
+            }
+
+            // ---- 风格切换 ----
+            function initStyleToggle() {
+                const checkbox = $("themeCheckbox");
+                const label = $("styleLabel");
+                if (!checkbox || !label) return;
+
+                const applyCheckbox = () => {
+                    const checked = personaStyle === "professional";
+                    checkbox.checked = checked;
+                    label.textContent = checked ? "专业" : "活泼";
+                };
+                applyCheckbox();
+
+                checkbox.addEventListener("change", () => {
+                    personaStyle = checkbox.checked ? "professional" : "lively";
+                    saveSetting("dq4_style", personaStyle);
+                    applyCheckbox();
+                });
+
+                label.style.cursor = "pointer";
+                label.addEventListener("click", () => {
+                    checkbox.checked = !checkbox.checked;
+                    checkbox.dispatchEvent(new Event("change"));
+                });
+            }
+
+            // ---- 设置 ----
+            function showSettings() {
+                const modal = $("settingsModal");
+                if (!modal) return;
+                modal.classList.remove("hidden");
+                $("dashscopeKey").value = apiKeys.dashscope;
+                $("qweatherKey").value = apiKeys.qweather_key;
+                $("qweatherHost").value = apiKeys.qweather_host;
+                $("amapKey").value = apiKeys.amap;
+            }
+
+            function hideSettings() {
+                const m = $("settingsModal");
+                if (m) m.classList.add("hidden");
+            }
+
+            function saveSettings() {
+                apiKeys.dashscope = $("dashscopeKey").value.trim();
+                apiKeys.qweather_key = $("qweatherKey").value.trim();
+                apiKeys.qweather_host = $("qweatherHost").value.trim();
+                apiKeys.amap = $("amapKey").value.trim();
+                saveSetting("dq4_dashscope", apiKeys.dashscope);
+                saveSetting("dq4_qw_key", apiKeys.qweather_key);
+                saveSetting("dq4_qw_host", apiKeys.qweather_host);
+                saveSetting("dq4_amap", apiKeys.amap);
+                hideSettings();
+                memory.clear();
+                updateSidebarUI();
+                if (chat) {
+                    chat.innerHTML =
+                        '<div class="message msg-agent"><div class="agent-avatar">✦</div><div class="bubble">设置已保存！想去哪里旅行？跟我说说吧～</div></div>';
+                }
+            }
+
+            function resetChat() {
+                memory.clear();
+                updateSidebarUI();
+                if (chat) {
+                    chat.innerHTML =
+                        '<div class="message msg-agent"><div class="agent-avatar">✦</div><div class="bubble">你好！我是你的AI旅行规划助手。<br><span style="color:var(--text-muted);">想去哪里？跟我说说你的想法吧～</span></div></div>';
+                }
+            }
+
+            // ============================================================
+            // 6. 初始化
+            // ============================================================
+            updateSidebarUI();
+            initStyleToggle();
+
+            // 暴露到全局
+            window.handleSend = handleSend;
+            window.toggleSidebar = toggleSidebar;
+            window.showSettings = showSettings;
+            window.hideSettings = hideSettings;
+            window.saveSettings = saveSettings;
+            window.resetChat = resetChat;
+
+            console.log("[Agent v4] 初始化完成");
+            console.log("[Agent v4] API 配置状态: DashScope=" + (apiKeys.dashscope ? "已配" : "未配") +
+                " 天气=" + (apiKeys.qweather_key && apiKeys.qweather_host ? "已配" : "未配") +
+                " 地图=" + (apiKeys.amap ? "已配" : "未配") +
+                " 风格=" + personaStyle);
+        })();
+    </script>
+</body>
+
+</html>

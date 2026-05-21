@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(start \"\" \"e:\\\\me\\\\Python\\\\Agent\\\\agent_demo03.html\")",
+      "Bash(curl -s \"https://api.github.com/repos/anthropics/skills/contents\")",
+      "Bash(kill %2)",
+      "Bash(python3 -m http.server 8767)",
+      "Bash(kill %3)",
+      "Bash(python .claude/skills/webapp-testing/scripts/with_server.py --help)",
+      "Bash(python test_flow.py)",
+      "Bash(chmod +x \"e:/me/Python/Agent/.claude/hooks/post-edit.sh\")",
+      "Bash(git init *)"
+    ]
+  }
+}

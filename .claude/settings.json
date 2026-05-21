@@ -1,0 +1,42 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/post-edit.sh"
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(python -c ' *)",
+      "Bash(git add .)",
+      "Bash(git commit *)",
+      "Bash(git push origin main)",
+      "Bash(git status)",
+      "Bash(git diff)",
+      "Bash(git log *)",
+      "Read(//c/Users/果/**)",
+      "Bash(npx --yes skills add anthropics/skills@webapp-testing --target \"e:/me/Python/Agent/.claude/skills/\")",
+      "Bash(gh auth *)",
+      "Bash(python install_skill.py)",
+      "Bash(cd /tmp)",
+      "Bash(find /tmp -maxdepth 1 -name \"anthropic-skills-temp\" -type d)",
+      "Bash(ls /tmp/anthropic-skills-temp/skills/ | grep -i web)",
+      "Read(//tmp/anthropic-skills-temp/**)",
+      "Bash(rm -f \"e:/me/Python/Agent/install_skill.py\" && rm -rf /tmp/anthropic-skills-temp && echo \"cleaned\")",
+      "Bash(python -c \"from playwright.sync_api import sync_playwright; print\\('Playwright OK'\\)\")",
+      "Bash(python -m playwright install chromium)",
+      "Bash(python test_agent_demo04.py)",
+      "Bash(python test_probe.py)"
+    ],
+    "additionalDirectories": [
+      "\\tmp"
+    ]
+  }
+}
