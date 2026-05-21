@@ -791,8 +791,71 @@
             cursor: not-allowed;
             transform: none;
         }
+        /* ========== FAQ Button ========== */
+        .faq-button {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: none;
+            background-color: #ffe53b;
+            background-image: linear-gradient(147deg, #ffe53b 0%, #ff2525 74%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0px 8px 8px rgba(0, 0, 0, 0.151);
+            position: relative;
+            flex-shrink: 0;
+        }
+        .faq-button svg {
+            height: 1.1em;
+            fill: white;
+        }
+        .faq-button:hover svg {
+            animation: bounce-down 0.5s both;
+        }
+        @keyframes bounce-down {
+            0% { transform: translateY(0); }
+            30% { transform: translateY(5px); }
+            50% { transform: translateY(2px); }
+            70% { transform: translateY(3px); }
+            100% { transform: translateY(0); }
+        }
+        .faq-button .tooltip {
+            position: absolute;
+            bottom: -30px;
+            opacity: 0;
+            background-color: #ffe53b;
+            background-image: linear-gradient(147deg, #ffe53b 0%, #ff2525 74%);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition-duration: 0.2s;
+            pointer-events: none;
+            letter-spacing: 0.5px;
+            font-size: 0.72rem;
+            white-space: nowrap;
+        }
+        .faq-button .tooltip::before {
+            position: absolute;
+            content: "";
+            width: 10px;
+            height: 10px;
+            background-color: #ff2525;
+            transform: rotate(45deg);
+            top: -4px;
+            transition-duration: 0.3s;
+        }
+        .faq-button:hover .tooltip {
+            bottom: -50px;
+            opacity: 1;
+            transition-duration: 0.3s;
+        }
+
         /* ========== Modals ========== */
-        
         .modal-overlay {
             position: fixed;
             z-index: 50;
@@ -803,16 +866,10 @@
             background: rgba(0, 0, 0, 0.4);
             animation: fadeIn 0.2s;
         }
-        
         @keyframes fadeIn {
-            from {
-                opacity: 0;
-            }
-            to {
-                opacity: 1;
-            }
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
-        
         .modal {
             background: var(--surface);
             border-radius: var(--radius-lg);
@@ -822,63 +879,30 @@
             box-shadow: var(--shadow-3);
             animation: scaleIn 0.24s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        
         @keyframes scaleIn {
-            from {
-                opacity: 0;
-                transform: scale(0.94) translateY(10px);
-            }
-            to {
-                opacity: 1;
-                transform: scale(1) translateY(0);
-            }
+            from { opacity: 0; transform: scale(0.94) translateY(10px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
         }
-        
         .modal h3 {
             font-size: 1rem;
             font-weight: 600;
             margin-bottom: 14px;
         }
-        
-        .modal label {
-            display: block;
-            font-size: 0.76rem;
-            font-weight: 600;
-            margin: 10px 0 4px;
-            color: var(--text-secondary);
+        .about-modal {
+            text-align: center;
         }
-        
-        .modal input,
-        .modal select {
-            width: 100%;
-            padding: 9px 12px;
-            border: 1.5px solid var(--border);
-            border-radius: var(--radius-sm);
+        .about-text {
             font-size: 0.84rem;
-            outline: none;
-            font-family: inherit;
-            background: #fafafa;
+            color: var(--text-secondary);
+            line-height: 1.7;
+            margin: 0 0 10px;
         }
-        
-        .modal input:focus,
-        .modal select:focus {
-            border-color: #616161;
-            background: var(--surface);
-        }
-        
-        .modal .hint {
-            font-size: 0.68rem;
-            color: var(--text-muted);
-            margin-top: 2px;
-        }
-        
         .modal-actions {
             display: flex;
             gap: 8px;
-            justify-content: flex-end;
+            justify-content: center;
             margin-top: 16px;
         }
-        
         .modal-actions button {
             padding: 8px 18px;
             border-radius: 18px;
@@ -889,21 +913,10 @@
             font-family: inherit;
             transition: all var(--transition);
         }
-        
-        .btn-ghost {
-            background: #f5f5f5;
-            color: var(--text-secondary);
-        }
-        
-        .btn-ghost:hover {
-            background: #e0e0e0;
-        }
-        
         .btn-fill {
             background: #424242;
             color: #fff;
         }
-        
         .btn-fill:hover {
             background: #212121;
         }
@@ -975,7 +988,12 @@
                 <input type="checkbox" class="theme-checkbox" id="themeCheckbox">
             </div>
             <button class="icon-btn" onclick="toggleSidebar()" title="侧边栏">☰</button>
-            <button class="icon-btn" onclick="showSettings()" title="设置">⚙</button>
+            <button class="faq-button" onclick="showFAQ()">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/>
+                </svg>
+                <span class="tooltip">关于我们</span>
+            </button>
             <button class="icon-btn" onclick="resetChat()" title="新建对话">+</button>
         </div>
     </header>
@@ -1021,27 +1039,14 @@
         </div>
     </div>
 
-    <!-- Settings Modal -->
-    <div class="modal-overlay hidden" id="settingsModal">
-        <div class="modal">
-            <h3>设置</h3>
-            <label>DashScope API Key <span style="color:var(--text-muted);font-weight:400;">（必需）</span></label>
-            <input type="password" id="dashscopeKey" placeholder="sk-...">
-            <div class="hint">用于 AI 对话和规划，qwen-plus 模型</div>
-
-            <label>和风天气 API Key</label>
-            <input type="text" id="qweatherKey" placeholder="4d...">
-            <label>和风天气 API Host</label>
-            <input type="text" id="qweatherHost" placeholder="xxx.re.qweatherapi.com">
-            <div class="hint">控制台 → 设置 → 专属 API Host</div>
-
-            <label>高德地图 API Key</label>
-            <input type="text" id="amapKey" placeholder="1d...">
-            <div class="hint">用于搜索景点、酒店、餐厅</div>
-
+    <!-- About Modal -->
+    <div class="modal-overlay hidden" id="faqModal">
+        <div class="modal about-modal">
+            <h3>✨ 关于我们</h3>
+            <p class="about-text">专属旅行计划一键定制！我们会根据你的出行目的地📍、出行人数👭、游玩天数⏰、游玩预算💰以及心仪旅行风格✨，为你量身打造超合心意的旅行攻略～</p>
+            <p class="about-text">趣味语言风格随心切换💬，还能一键翻看往期精美出行计划📜！快来体验试试叭💖</p>
             <div class="modal-actions">
-                <button class="btn-ghost" onclick="hideSettings()">取消</button>
-                <button class="btn-fill" onclick="saveSettings()">保存</button>
+                <button class="btn-fill" onclick="hideFAQ()">知道啦</button>
             </div>
         </div>
     </div>
@@ -2475,37 +2480,15 @@
             }
 
             // ---- 设置 ----
-            function showSettings() {
-                const modal = $("settingsModal");
+            function showFAQ() {
+                const modal = $("faqModal");
                 if (!modal) return;
                 modal.classList.remove("hidden");
-                $("dashscopeKey").value = apiKeys.dashscope;
-                $("qweatherKey").value = apiKeys.qweather_key;
-                $("qweatherHost").value = apiKeys.qweather_host;
-                $("amapKey").value = apiKeys.amap;
             }
 
-            function hideSettings() {
-                const m = $("settingsModal");
+            function hideFAQ() {
+                const m = $("faqModal");
                 if (m) m.classList.add("hidden");
-            }
-
-            function saveSettings() {
-                apiKeys.dashscope = $("dashscopeKey").value.trim();
-                apiKeys.qweather_key = $("qweatherKey").value.trim();
-                apiKeys.qweather_host = $("qweatherHost").value.trim();
-                apiKeys.amap = $("amapKey").value.trim();
-                saveSetting("dq4_dashscope", apiKeys.dashscope);
-                saveSetting("dq4_qw_key", apiKeys.qweather_key);
-                saveSetting("dq4_qw_host", apiKeys.qweather_host);
-                saveSetting("dq4_amap", apiKeys.amap);
-                hideSettings();
-                memory.clear();
-                updateSidebarUI();
-                if (chat) {
-                    chat.innerHTML =
-                        '<div class="message msg-agent"><div class="agent-avatar">✦</div><div class="bubble">设置已保存！想去哪里旅行？跟我说说吧～</div></div>';
-                }
             }
 
             function resetChat(options = {}) {
@@ -2535,9 +2518,8 @@
             // 暴露到全局
             window.handleSend = handleSend;
             window.toggleSidebar = toggleSidebar;
-            window.showSettings = showSettings;
-            window.hideSettings = hideSettings;
-            window.saveSettings = saveSettings;
+            window.showFAQ = showFAQ;
+            window.hideFAQ = hideFAQ;
             window.resetChat = resetChat;
             window.restoreHistoryChat = restoreHistoryChat;
             window.deleteHistoryItem = deleteHistoryItem;
