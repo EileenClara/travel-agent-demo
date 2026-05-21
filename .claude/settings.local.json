@@ -14,7 +14,9 @@
       "Bash(git branch *)",
       "Bash(git push *)",
       "Bash(git pull *)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Read(//tmp/**)",
+      "Read(//e/tmp/**)"
     ]
   }
 }

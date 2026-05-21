@@ -262,6 +262,60 @@
             border: 1px solid var(--border);
         }
         
+        .history-item {
+            padding: 10px 12px;
+            margin-bottom: 6px;
+            background: #fafafa;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: background var(--transition);
+            border: 1px solid transparent;
+        }
+        
+        .history-item:hover {
+            background: #f0f0f0;
+            border-color: var(--border);
+        }
+        
+        .history-item-name {
+            font-weight: 600;
+            font-size: 0.82rem;
+            color: var(--text);
+            margin-bottom: 2px;
+        }
+        
+        .history-item-meta {
+            font-size: 0.68rem;
+            color: var(--text-muted);
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .history-item-time {
+            font-size: 0.66rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+        
+        .history-item-delete {
+            float: right;
+            width: 20px;
+            height: 20px;
+            line-height: 20px;
+            text-align: center;
+            border-radius: 50%;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all var(--transition);
+        }
+        
+        .history-item-delete:hover {
+            background: #ffebee;
+            color: #e53935;
+        }
+        
         .summary-line {
             font-size: 0.74rem;
             color: var(--text-muted);
@@ -942,6 +996,10 @@
                 <div class="sidebar-label">对话摘要</div>
                 <div class="sidebar-value" id="convSummary">暂无</div>
             </div>
+            <div class="sidebar-section">
+                <div class="sidebar-label">历史计划</div>
+                <div class="sidebar-value" id="tripHistory">暂无历史计划</div>
+            </div>
         </aside>
 
         <div class="main">
@@ -1217,6 +1275,8 @@
                     this.tripInfo = {};
                     this.preferences = {};
                     this.weatherData = null;
+                    this.tripHistory = [];
+                    this.lastPlanText = "";
                     this.load();
                 }
                 load() {
@@ -1228,6 +1288,8 @@
                             this.tripInfo = data.tripInfo || {};
                             this.preferences = data.preferences || {};
                             this.weatherData = data.weatherData || null;
+                            this.tripHistory = data.tripHistory || [];
+                            this.lastPlanText = data.lastPlanText || "";
                         }
                     } catch (e) { /* ignore */ }
                 }
@@ -1238,6 +1300,8 @@
                             tripInfo: this.tripInfo,
                             preferences: this.preferences,
                             weatherData: this.weatherData,
+                            tripHistory: this.tripHistory,
+                            lastPlanText: this.lastPlanText,
                         }));
                     } catch (e) { /* ignore */ }
                 }
@@ -1310,6 +1374,39 @@
                     this.tripInfo = {};
                     this.preferences = {};
                     this.weatherData = null;
+                    this.lastPlanText = "";
+                    this.save();
+                }
+                archiveCurrentTrip() {
+                    if (!this.tripInfo.destination) return;
+                    if (!this.lastPlanText) return;
+                    const exists = this.tripHistory.some(h =>
+                        h.tripInfo.destination === this.tripInfo.destination &&
+                        h.planText === this.lastPlanText
+                    );
+                    if (exists) return;
+                    this.tripHistory.unshift({
+                        tripInfo: {...this.tripInfo
+                        },
+                        weatherData: this.weatherData ? JSON.parse(JSON.stringify(this.weatherData)) : null,
+                        planText: this.lastPlanText,
+                        timestamp: Date.now()
+                    });
+                    if (this.tripHistory.length > 20) this.tripHistory = this.tripHistory.slice(0, 20);
+                    this.save();
+                }
+                restoreTrip(index) {
+                    const trip = this.tripHistory[index];
+                    if (!trip) return null;
+                    this.tripInfo = {...trip.tripInfo
+                    };
+                    this.weatherData = trip.weatherData;
+                    this.lastPlanText = trip.planText;
+                    this.save();
+                    return trip;
+                }
+                deleteTrip(index) {
+                    this.tripHistory.splice(index, 1);
                     this.save();
                 }
             }
@@ -1459,6 +1556,18 @@
                 },
 
                 update_trip_info(args) {
+                    const oldDest = memory.tripInfo.destination;
+                    const newDest = args.destination;
+                    // 检测目的地变化 → 归档旧计划，清空聊天
+                    if (newDest && oldDest && newDest !== oldDest) {
+                        memory.archiveCurrentTrip();
+                        clearChatMessages();
+                        memory.lastPlanText = "";
+                        memory.tripInfo = {};
+                        memory.weatherData = null;
+                        memory.messages = [];
+                        memory.save();
+                    }
                     const updates = {};
                     ["destination", "days", "people", "budget", "style", "health"].forEach(k => {
                         if (args[k] !== undefined && args[k] !== null && args[k] !== "") updates[k] = args[k];
@@ -2055,6 +2164,12 @@
 
             function addPlanCard(text) {
                 if (!chat) return;
+
+                document.querySelectorAll(".plan-card").forEach(el => {
+                    el.closest(".message") && el.remove();
+                });
+
+                memory.lastPlanText = text;
                 let weatherHTML = "";
                 if (memory.weatherData && memory.weatherData.days && memory.weatherData.days.length > 0) {
                     weatherHTML = buildWeatherCardsHTML(memory.weatherData);
@@ -2063,6 +2178,40 @@
                 el.className = "message msg-agent";
                 el.innerHTML = '<div class="agent-avatar">✦</div><div class="plan-card">' + weatherHTML + renderPlanHTML(text) + '</div>';
                 chat.appendChild(el);
+
+                memory.archiveCurrentTrip();
+                updateSidebarUI();
+                scrollDown();
+            }
+
+            function clearChatMessages() {
+                if (!chat) return;
+                // Remove all messages except the first welcome message (keep it)
+                const msgs = chat.querySelectorAll(".message");
+                for (let i = msgs.length - 1; i >= 1; i--) {
+                    msgs[i].remove();
+                }
+            }
+
+            function restoreHistoryChat(index) {
+                const trip = memory.restoreTrip(index);
+                if (!trip) return;
+                memory.messages = [];
+                memory.save();
+                clearChatMessages();
+                // Add hint
+                const hint = document.createElement("div");
+                hint.className = "message msg-agent";
+                hint.innerHTML = '<div class="agent-avatar">📋</div><div class="bubble" style="font-size:0.78rem;color:var(--text-muted);">已加载历史计划：' + esc(trip.tripInfo.destination || "") + '</div>';
+                chat.appendChild(hint);
+                // Show the plan
+                addPlanCard(trip.planText);
+                updateSidebarUI();
+                // Welcome prompt
+                const promptEl = document.createElement("div");
+                promptEl.className = "message msg-agent";
+                promptEl.innerHTML = '<div class="agent-avatar">✦</div><div class="bubble" style="color:var(--text-muted);">想去哪里？跟我说说你的想法吧～</div>';
+                chat.appendChild(promptEl);
                 scrollDown();
             }
 
@@ -2164,6 +2313,41 @@
                         }).join("");
                     }
                 }
+
+                const histDiv = $("tripHistory");
+                if (histDiv) {
+                    const history = memory.tripHistory;
+                    if (!history || !history.length) {
+                        histDiv.innerHTML = '<span style="color:var(--text-muted);font-size:0.78rem;">暂无历史计划</span>';
+                    } else {
+                        histDiv.innerHTML = history.map((trip, i) => {
+                            const info = trip.tripInfo;
+                            const dest = esc(info.destination || "未知目的地");
+                            const meta = [];
+                            if (info.style) meta.push(esc(info.style));
+                            if (info.days) meta.push(info.days + "天");
+                            if (info.people) meta.push(info.people + "人");
+                            if (info.budget) meta.push(Number(info.budget).toLocaleString() + "元");
+                            const timeStr = trip.timestamp ? new Date(trip.timestamp).toLocaleString("zh-CN", {
+                                month: "numeric",
+                                day: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit"
+                            }) : "";
+                            return '<div class="history-item" onclick="restoreHistoryChat(' + i + ')" title="点击恢复此计划">' +
+                                '<span class="history-item-delete" onclick="event.stopPropagation();deleteHistoryItem(' + i + ')" title="删除">×</span>' +
+                                '<div class="history-item-name">' + dest + '</div>' +
+                                '<div class="history-item-meta">' + (meta.length ? meta.join(" · ") : "待完善") + '</div>' +
+                                '<div class="history-item-time">' + esc(timeStr) + '</div>' +
+                                '</div>';
+                        }).join("");
+                    }
+                }
+            }
+
+            function deleteHistoryItem(index) {
+                memory.deleteTrip(index);
+                updateSidebarUI();
             }
 
             // ---- 发送 ----
@@ -2203,14 +2387,12 @@
                     if (result.type === "response") {
                         const info = memory.tripInfo;
                         const hasAll = info.destination && info.days && info.people && info.style;
+                        const isPlan = /第[一二三四五六七八九十\d]+天[：:]/.test(result.text);
 
-                        if (hasAll) {
-                            // 四要素齐全 → 方案卡片（含天气卡片）
+                        if (hasAll && isPlan) {
                             addPlanCard(result.text);
                         } else {
-                            // 信息不全 → 文字消息
                             addAgentMsg(result.text);
-                            // 目的地已知但风格未选 → 弹出风格按钮气泡
                             if (info.destination && !info.style) {
                                 checkAndShowStyleButtons();
                             }
@@ -2327,6 +2509,11 @@
             window.hideSettings = hideSettings;
             window.saveSettings = saveSettings;
             window.resetChat = resetChat;
+            window.restoreHistoryChat = restoreHistoryChat;
+            window.deleteHistoryItem = deleteHistoryItem;
+            window.updateSidebarUI = updateSidebarUI;
+            window.clearChatMessages = clearChatMessages;
+            window.memory = memory;
 
             console.log("[Agent v4] 初始化完成");
             console.log("[Agent v4] API 配置状态: DashScope=" + (apiKeys.dashscope ? "已配" : "未配") +
