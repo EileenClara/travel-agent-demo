@@ -152,23 +152,98 @@
             background-position: 100%;
         }
         
-        .icon-btn {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            border: none;
-            cursor: pointer;
-            background: transparent;
-            color: var(--text-secondary);
-            font-size: 1rem;
-            display: flex;
+        /* Header icon buttons */
+        .header-icons {
+            display: inline-flex;
+            list-style: none;
+            gap: 8px;
+            margin: 0;
+            padding: 0;
             align-items: center;
-            justify-content: center;
-            transition: background var(--transition);
         }
-        
-        .icon-btn:hover {
-            background: rgba(0, 0, 0, 0.06);
+        .header-icons .icon {
+            position: relative;
+            background: #fff;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            font-size: 16px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            box-shadow: 0 10px 10px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            border: none;
+            flex-shrink: 0;
+        }
+        .header-icons .icon svg {
+            fill: #666;
+            transition: fill 0.2s;
+        }
+        .header-icons .icon:hover svg {
+            fill: #fff;
+        }
+        .header-icons .icon span.icon-text {
+            color: #666;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: color 0.2s;
+        }
+        .header-icons .icon:hover span.icon-text {
+            color: #fff;
+        }
+        .header-icons .tooltip {
+            position: absolute;
+            bottom: 0;
+            font-size: 12px;
+            background: #424242;
+            color: #fff;
+            padding: 5px 8px;
+            border-radius: 5px;
+            box-shadow: 0 10px 10px rgba(0, 0, 0, 0.1);
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            white-space: nowrap;
+        }
+        .header-icons .tooltip::before {
+            position: absolute;
+            content: "";
+            height: 8px;
+            width: 8px;
+            background: inherit;
+            top: -3px;
+            left: 50%;
+            transform: translate(-50%) rotate(45deg);
+        }
+        .header-icons .icon:hover .tooltip {
+            bottom: -45px;
+            opacity: 1;
+            visibility: visible;
+        }
+        /* Sidebar toggle */
+        .header-icons .icon-sidebar:hover {
+            background: #5c6bc0;
+        }
+        .header-icons .icon-sidebar:hover .tooltip {
+            background: #5c6bc0;
+        }
+        /* FAQ / About */
+        .header-icons .icon-faq:hover {
+            background: #ffe53b;
+            background-image: linear-gradient(147deg, #ffe53b 0%, #ff2525 74%);
+        }
+        .header-icons .icon-faq:hover .tooltip {
+            background: #ff3d00;
+        }
+        /* New chat */
+        .header-icons .icon-new:hover {
+            background: #00897b;
+        }
+        .header-icons .icon-new:hover .tooltip {
+            background: #00897b;
         }
         /* ========== Layout ========== */
         
@@ -811,70 +886,6 @@
             cursor: not-allowed;
             transform: none;
         }
-        /* ========== FAQ Button ========== */
-        .faq-button {
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            border: none;
-            background-color: #ffe53b;
-            background-image: linear-gradient(147deg, #ffe53b 0%, #ff2525 74%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            box-shadow: 0px 8px 8px rgba(0, 0, 0, 0.151);
-            position: relative;
-            flex-shrink: 0;
-        }
-        .faq-button svg {
-            height: 1.1em;
-            fill: white;
-        }
-        .faq-button:hover svg {
-            animation: bounce-down 0.5s both;
-        }
-        @keyframes bounce-down {
-            0% { transform: translateY(0); }
-            30% { transform: translateY(5px); }
-            50% { transform: translateY(2px); }
-            70% { transform: translateY(3px); }
-            100% { transform: translateY(0); }
-        }
-        .faq-button .tooltip {
-            position: absolute;
-            bottom: -30px;
-            opacity: 0;
-            background-color: #ffe53b;
-            background-image: linear-gradient(147deg, #ffe53b 0%, #ff2525 74%);
-            color: white;
-            padding: 5px 10px;
-            border-radius: 5px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition-duration: 0.2s;
-            pointer-events: none;
-            letter-spacing: 0.5px;
-            font-size: 0.72rem;
-            white-space: nowrap;
-        }
-        .faq-button .tooltip::before {
-            position: absolute;
-            content: "";
-            width: 10px;
-            height: 10px;
-            background-color: #ff2525;
-            transform: rotate(45deg);
-            top: -4px;
-            transition-duration: 0.3s;
-        }
-        .faq-button:hover .tooltip {
-            bottom: -50px;
-            opacity: 1;
-            transition-duration: 0.3s;
-        }
-
         /* ========== Modals ========== */
         .modal-overlay {
             position: fixed;
@@ -1072,14 +1083,22 @@
                 <span id="styleLabel">活泼</span>
                 <input type="checkbox" class="theme-checkbox" id="themeCheckbox">
             </div>
-            <button class="icon-btn" onclick="toggleSidebar()" title="侧边栏">☰</button>
-            <button class="faq-button" onclick="showFAQ()">
-                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/>
-                </svg>
-                <span class="tooltip">关于我们</span>
-            </button>
-            <button class="icon-btn" onclick="resetChat()" title="新建对话">+</button>
+            <ul class="header-icons">
+                <li class="icon icon-sidebar" onclick="toggleSidebar()">
+                    <span class="tooltip">侧边栏</span>
+                    <span class="icon-text">☰</span>
+                </li>
+                <li class="icon icon-faq" onclick="showFAQ()">
+                    <span class="tooltip">关于我们</span>
+                    <svg viewBox="0 0 24 24" height="1em" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/>
+                    </svg>
+                </li>
+                <li class="icon icon-new" onclick="resetChat()">
+                    <span class="tooltip">新建对话</span>
+                    <span class="icon-text">+</span>
+                </li>
+            </ul>
         </div>
     </header>
 
