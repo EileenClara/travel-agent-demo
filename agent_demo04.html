@@ -315,6 +315,26 @@
             background: #ffebee;
             color: #e53935;
         }
+
+        .clear-history-btn {
+            display: block;
+            width: 100%;
+            margin-top: 8px;
+            padding: 6px 0;
+            border: 1px dashed var(--border);
+            border-radius: var(--radius-sm);
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 0.72rem;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all var(--transition);
+        }
+        .clear-history-btn:hover {
+            border-color: #e53935;
+            color: #e53935;
+            background: #fff5f5;
+        }
         
         .summary-line {
             font-size: 0.74rem;
@@ -954,6 +974,68 @@
             line-height: 1.5;
         }
         
+        .btn-ghost {
+            background: #f5f5f5;
+            color: var(--text-secondary);
+        }
+        .btn-ghost:hover {
+            background: #e0e0e0;
+        }
+        .btn-danger {
+            background: #e53935;
+            color: #fff;
+        }
+        .btn-danger:hover {
+            background: #c62828;
+        }
+
+        /* Clear History Card */
+        .clear-card {
+            width: 280px;
+            padding: 5px;
+            background-image: linear-gradient(#ca1eb3, #FD2E24, #FFD701 70%);
+            border-radius: 16px;
+            animation: scaleIn 0.24s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .clear-card .card__content {
+            background-color: #212121cf;
+            backdrop-filter: blur(50px);
+            width: 100%;
+            height: 100%;
+            padding: 15px;
+            border-radius: 12px;
+        }
+        .clear-card .card-details {
+            height: 100%;
+            gap: 0.5em;
+            display: grid;
+            place-content: center;
+            text-align: center;
+        }
+        .clear-card .text-body {
+            margin-top: 8px;
+            color: #ff8d79;
+            text-align: center;
+            font-size: 0.82rem;
+        }
+        .clear-card .text-title {
+            color: #ff4d7d;
+            font-size: 1.3em;
+            font-weight: bold;
+            text-align: center;
+        }
+        .clear-card .sunsetsvg {
+            width: 200px;
+            height: 80px;
+            margin: 0 auto;
+            display: block;
+        }
+        .clear-actions {
+            margin-top: 12px;
+            gap: 10px;
+            justify-content: center;
+        }
+
         .hidden {
             display: none !important;
         }
@@ -1017,6 +1099,7 @@
             <div class="sidebar-section">
                 <div class="sidebar-label">历史计划</div>
                 <div class="sidebar-value" id="tripHistory">暂无历史计划</div>
+                <button class="clear-history-btn" onclick="clearAllHistory()" title="清除所有历史计划">🗑 清除所有</button>
             </div>
         </aside>
 
@@ -1047,6 +1130,33 @@
             <p class="about-text">趣味语言风格随心切换💬，还能一键翻看往期精美出行计划📜！快来体验试试叭💖</p>
             <div class="modal-actions">
                 <button class="btn-fill" onclick="hideFAQ()">知道啦</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Clear History Confirm Modal -->
+    <div class="modal-overlay hidden" id="clearHistoryModal">
+        <div class="clear-card">
+            <div class="card__content">
+                <div class="card-details">
+                    <svg class="sunsetsvg" viewBox="0 0 313 200" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="MyGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stop-color="#FD2E24"/>
+                                <stop offset="50%" stop-color="#FFD701"/>
+                                <stop offset="100%" stop-color="#ca1eb3"/>
+                            </linearGradient>
+                        </defs>
+                        <circle id="sun" cx="156" cy="140" r="50" fill="url(#MyGradient)"/>
+                        <path d="M156 40 L156 15 M156 185 L156 210 M90 100 L72 88 M222 112 L240 100 M95 150 L80 165 M217 135 L232 120" stroke="#FFD701" stroke-width="3" stroke-linecap="round"/>
+                    </svg>
+                    <p class="text-title">确定要清除吗？</p>
+                    <p class="text-body">所有历史旅行计划将被永久删除 🥺</p>
+                </div>
+                <div class="modal-actions clear-actions">
+                    <button class="btn-ghost" onclick="cancelClearHistory()">取消</button>
+                    <button class="btn-fill btn-danger" onclick="confirmClearHistory()">确定</button>
+                </div>
             </div>
         </div>
     </div>
@@ -2369,6 +2479,23 @@
                 updateSidebarUI();
             }
 
+            function clearAllHistory() {
+                const modal = $("clearHistoryModal");
+                if (modal) modal.classList.remove("hidden");
+            }
+
+            function cancelClearHistory() {
+                const modal = $("clearHistoryModal");
+                if (modal) modal.classList.add("hidden");
+            }
+
+            function confirmClearHistory() {
+                memory.tripHistory = [];
+                memory.save();
+                cancelClearHistory();
+                updateSidebarUI();
+            }
+
             // ---- 发送 ----
             async function sendMessage() {
                 if (!input || !sendBtn) return;
@@ -2523,6 +2650,9 @@
             window.resetChat = resetChat;
             window.restoreHistoryChat = restoreHistoryChat;
             window.deleteHistoryItem = deleteHistoryItem;
+            window.clearAllHistory = clearAllHistory;
+            window.cancelClearHistory = cancelClearHistory;
+            window.confirmClearHistory = confirmClearHistory;
             window.updateSidebarUI = updateSidebarUI;
             window.clearChatMessages = clearChatMessages;
             window.memory = memory;
