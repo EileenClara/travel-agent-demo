@@ -2090,7 +2090,8 @@
 ## 工具调用规则
 - 用户提到任何城市（含"想去X""换X""改到X""去X"等） → 无条件调 update_trip_info。即使是"那杭州呢""还是去北京吧"也要立刻提取城市名调用。不要在此阶段调 get_weather，天气等到方案生成时再查。
 - 如果之前已有其他目的地，新城市会被系统自动识别为切换目的地并弹窗确认
-- 用户提天数/人数/预算/风格 → 调 update_trip_info，必须调用！
+- 用户提天数/人数/预算/风格 → 调 update_trip_info，必须调用！即使是回复你刚才问的问题（你问"几天？"用户回"3"），也必须调 update_trip_info 记录，不能只口头确认。
+- 重要：你主动询问用户"几个人？""玩几天？""预算多少？"之后，用户回复的任何数字/信息都是对你的回答，收到后必须立即调 update_trip_info 记录，禁止只回复"好的收到"而不调工具！
 - 用户提饮食/作息/健康/旅伴等个人偏好 → 调 update_preference
 - 单条消息含多个信息 → 全部填入对应工具，不要遗漏
 - get_weather / search_attractions / search_web 均不限国内外，都先尝试调用，工具内部会自动判断是否支持。国内优先 search_attractions，国际或 search_attractions 无结果时用 search_web 补搜
@@ -2771,7 +2772,9 @@
                     const desc = $("switchDestDesc");
                     const mergeBtn = $("switchMergeBtn");
                     const newBtn = $("switchNewBtn");
+                    console.log("[switchDialog] 弹窗元素检查:", { overlay: !!overlay, desc: !!desc, mergeBtn: !!mergeBtn, newBtn: !!newBtn });
                     if (!overlay || !desc || !mergeBtn || !newBtn) {
+                        console.error("[switchDialog] ❌ 弹窗元素缺失，静默选择'new'");
                         resolve("new");
                         return;
                     }
@@ -2790,6 +2793,7 @@
                     newBtn.onclick = () => cleanup("new");
 
                     overlay.classList.remove("hidden");
+                    console.log("[switchDialog] ✅ 弹窗已显示:", switchData.oldDest, "→", switchData.newDest);
                 });
             }
 
@@ -2950,26 +2954,37 @@
                     if (m) { updates.people = numMap[m[1]] || parseInt(m[1]); break; }
                 }
 
-                // 天数：4天、四天
-                const dm = text.match(/(\d+)\s*天/);
-                if (dm) updates.days = parseInt(dm[1]);
+                // 天数：4天、四天、3（裸数字，模型问几天时用户只回数字）
+                const dm1 = text.match(/(\d+)\s*天/);
+                const dm2 = text.match(/([一二两三四五六七八九十])\s*天/);
+                if (dm1) updates.days = parseInt(dm1[1]);
+                else if (dm2) updates.days = numMap[dm2[1]];
+                else {
+                    // 裸数字 1-30：模型问"几天？"时用户常只回数字
+                    const bareDays = text.match(/^\s*(\d{1,2})\s*$/);
+                    if (bareDays) {
+                        const n = parseInt(bareDays[1]);
+                        if (n >= 1 && n <= 30 && !updates.people) updates.days = n;
+                    }
+                }
 
-                // 预算：3000预算、预算3000、3万预算、3k
+                // 预算：3000预算、预算3000、3万预算、3k、裸数字>=100、4000元
                 const bm1 = text.match(/(\d+)\s*[块元]?\s*预算/);
                 const bm2 = text.match(/预算\s*(\d+)/);
                 const bm3 = text.match(/(\d+)\s*万\s*(?:预算)?/);
                 const bm4 = text.match(/(\d+)[kK]\s*(?:预算)?/);
-                const bm = bm1 || bm2 || bm3 || bm4;
+                const bm5 = text.match(/^\s*(\d{3,})\s*[块元]?\s*$/);  // 纯数字回复：4000、4000元
+                const bm = bm1 || bm2 || bm3 || bm4 || bm5;
                 if (bm) {
                     updates.budget = parseInt(bm[1]);
                     if (bm === bm3) updates.budget *= 10000;
                     if (bm === bm4) updates.budget *= 1000;
                 }
 
-                // 目的地切换：想去澳门、还想去澳门、换成杭州、改到北京、还是去三亚
+                // 目的地切换：想去澳门、还要去澳门、也要去深圳、换成杭州、改到北京、还是去三亚
                 // 不在 extractTripInfoFromText 里直接改，而是留给 processMessage 弹窗
                 if (memory.tripInfo.destination && !updates.destination) {
-                    const switchMatch = text.match(/(?:想去|还想去|改成?|换成?|切换到?|改为|还是去|换去|换到)\s*([一-鿿a-zA-Z·]{2,8})/);
+                    const switchMatch = text.match(/(?:想去|还想去|还要去|又想去|也要去|也想去|改成?|换成?|切换到?|改为|还是去|换去|换到|要不去)\s*([一-鿿a-zA-Z·]{2,8})/);
                     if (switchMatch) {
                         const newCity = switchMatch[1];
                         const notCity = /^(?:吃饭|酒店|餐厅|景点|民宿|机票|火车|高铁|飞机|自驾|公交|地铁|打车|步行|一下|看看|玩玩|逛逛|睡觉|休息|这个|那个|哪里|什么)/;
@@ -3046,10 +3061,12 @@
                 if (memory._pendingSwitchDest) {
                     const newDest = memory._pendingSwitchDest;
                     memory._pendingSwitchDest = null;
+                    console.log("[sendMessage] JS兜底触发目的地切换弹窗:", memory.tripInfo.destination, "→", newDest);
                     const choice = await showSwitchDestDialog({
                         oldDest: memory.tripInfo.destination,
                         newDest: newDest
                     });
+                    console.log("[sendMessage] 用户选择:", choice);
                     if (choice === "merge") {
                         memory.updateTripInfo({ destination: memory.tripInfo.destination + "+" + newDest });
                     } else {
@@ -3083,8 +3100,10 @@
                         },
                         async(switchData) => {
                             // 目的地切换回调
+                            console.log("[sendMessage] 模型触发目的地切换弹窗:", switchData.oldDest, "→", switchData.newDest);
                             typing.setText("检测到新目的地，请选择...");
                             const choice = await showSwitchDestDialog(switchData);
+                            console.log("[sendMessage] 模型路径用户选择:", choice);
                             typing.setText("");
                             return choice;
                         }
