@@ -426,8 +426,10 @@
         }
         
         .pref-tag {
-            display: inline-block;
-            padding: 4px 10px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px 4px 10px;
             border-radius: 12px;
             font-size: 0.72rem;
             font-weight: 500;
@@ -435,6 +437,44 @@
             background: #f0f0f0;
             color: #333;
             border: 1px solid #e0e0e0;
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.2s, border-color 0.2s;
+        }
+        .pref-tag:hover {
+            background: #e4e4e4;
+        }
+        .pref-tag.starred {
+            background: #fffde7;
+            border-color: #ffd54f;
+            color: #5d4037;
+        }
+        .pref-tag.starred:hover {
+            background: #fff9c4;
+        }
+        .pref-tag .pref-star {
+            font-size: 0.85rem;
+            line-height: 1;
+            opacity: 0.5;
+            transition: opacity 0.2s;
+        }
+        .pref-tag.starred .pref-star {
+            opacity: 1;
+        }
+        .pref-tag .pref-del {
+            font-size: 0.75rem;
+            line-height: 1;
+            opacity: 0;
+            color: #999;
+            transition: opacity 0.2s, color 0.2s;
+            margin-left: 2px;
+        }
+        .pref-tag:hover .pref-del {
+            opacity: 0.6;
+        }
+        .pref-tag .pref-del:hover {
+            opacity: 1;
+            color: #e53935;
         }
         
         .history-item {
@@ -1622,6 +1662,7 @@
                     this.messages = [];
                     this.tripInfo = {};
                     this.preferences = {};
+                    this.starredPrefs = new Set();
                     this.weatherData = null;
                     this.tripHistory = [];
                     this.lastPlanText = "";
@@ -1635,6 +1676,7 @@
                             this.messages = data.messages || [];
                             this.tripInfo = data.tripInfo || {};
                             this.preferences = data.preferences || {};
+                            this.starredPrefs = new Set(data.starredPrefs || []);
                             this.weatherData = data.weatherData || null;
                             this.tripHistory = data.tripHistory || [];
                             this.lastPlanText = data.lastPlanText || "";
@@ -1647,6 +1689,7 @@
                             messages: this.messages.slice(-30),
                             tripInfo: this.tripInfo,
                             preferences: this.preferences,
+                            starredPrefs: [...this.starredPrefs],
                             weatherData: this.weatherData,
                             tripHistory: this.tripHistory,
                             lastPlanText: this.lastPlanText,
@@ -1680,6 +1723,19 @@
                 }
                 updatePreference(key, value) {
                     this.preferences[key] = value;
+                    this.save();
+                }
+                toggleStarPref(key) {
+                    if (this.starredPrefs.has(key)) {
+                        this.starredPrefs.delete(key);
+                    } else {
+                        this.starredPrefs.add(key);
+                    }
+                    this.save();
+                }
+                deletePref(key) {
+                    delete this.preferences[key];
+                    this.starredPrefs.delete(key);
                     this.save();
                 }
                 getMemoryContext() {
@@ -1754,6 +1810,7 @@
                     this.messages = [];
                     this.tripInfo = {};
                     this.preferences = {};
+                    this.starredPrefs = new Set();
                     this.weatherData = null;
                     this.lastPlanText = "";
                     this.save();
@@ -2770,7 +2827,16 @@
                     const tags = [];
                     Object.keys(memory.preferences).forEach(k => {
                         if (memory.preferences[k]) {
-                            tags.push('<span class="pref-tag">' + esc(memory.preferences[k]) + '</span>');
+                            const starred = memory.starredPrefs.has(k);
+                            const starIcon = starred ? '★' : '☆';
+                            const starredClass = starred ? ' starred' : '';
+                            tags.push(
+                                '<span class="pref-tag' + starredClass + '" data-pref-key="' + esc(k) + '" onclick="toggleStarPref(\'' + esc(k) + '\')" title="点击标星/取消标星">' +
+                                '<span class="pref-star">' + starIcon + '</span>' +
+                                esc(memory.preferences[k]) +
+                                '<span class="pref-del" onclick="event.stopPropagation();deletePrefKey(\'' + esc(k) + '\')" title="删除偏好">×</span>' +
+                                '</span>'
+                            );
                         }
                     });
                     prefDiv.innerHTML = tags.length ? tags.join("") :
@@ -3076,6 +3142,14 @@
             window.updateSidebarUI = updateSidebarUI;
             window.clearChatMessages = clearChatMessages;
             window.memory = memory;
+            window.toggleStarPref = function(key) {
+                memory.toggleStarPref(key);
+                updateSidebarUI();
+            };
+            window.deletePrefKey = function(key) {
+                memory.deletePref(key);
+                updateSidebarUI();
+            };
 
             console.log("[Agent v4] 初始化完成");
             console.log("[Agent v4] API 配置状态: DashScope=" + (apiKeys.dashscope ? "已配" : "未配") +
