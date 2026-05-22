@@ -1558,17 +1558,17 @@
                 type: "function",
                 function: {
                     name: "update_preference",
-                    description: "更新用户长期旅行偏好。当用户明确表达偏好时调用（如'我喜欢轻松一点的旅行'）。",
+                    description: "记录用户长期偏好（跨行程复用）。每当用户表达个人习惯/喜好/约束时调用。",
                     parameters: {
                         type: "object",
                         properties: {
                             key: {
                                 type: "string",
-                                description: "偏好类型，如travel_style"
+                                description: "偏好类型。常用key: companion_name(旅伴名字), companion_count(默认同行人数), travel_style(旅行风格), food_like(喜欢吃的), food_dislike(讨厌吃的), health(健康约束如恐高/晕车), routine(作息如不喜欢晚上出门), solo_travel(是否喜欢独行)"
                             },
                             value: {
                                 type: "string",
-                                description: "偏好值"
+                                description: "偏好值，如'果果'、'2大1小'、'爱吃辣'、'不吃海鲜'、'恐高'、'不喜欢晚上出门'、'喜欢一个人旅行'"
                             }
                         },
                         required: ["key", "value"]
@@ -1723,9 +1723,26 @@
                     }
                     const prefKeys = Object.keys(this.preferences);
                     if (prefKeys.length > 0) {
-                        ctx += "用户长期偏好：\n";
+                        const prefLabels = {
+                            companion_name: "旅伴名字",
+                            companion_count: "默认同行人数",
+                            travel_style: "偏好风格",
+                            food_like: "喜欢吃的",
+                            food_dislike: "讨厌吃的",
+                            health: "健康约束",
+                            routine: "作息偏好",
+                            solo_travel: "独行偏好"
+                        };
+                        ctx += "【长期偏好——新对话必须检查并复用】\n";
                         prefKeys.forEach(k => {
-                            ctx += `- ${k}: ${this.preferences[k]}\n`;
+                            const label = prefLabels[k] || k;
+                            let hint = "";
+                            if (k === "companion_name") hint = " → 问人数时先问'还是和TA一起吗'";
+                            if (k === "health") hint = " → 方案中务必避开相关活动";
+                            if (k === "food_like") hint = " → 推荐美食时优先推荐";
+                            if (k === "food_dislike") hint = " → 推荐美食时务必避开";
+                            if (k === "solo_travel") hint = " → 默认为1人，不用再问人数";
+                            ctx += `- ${label}: ${this.preferences[k]}${hint}\n`;
                         });
                     }
                     return ctx;
@@ -1969,7 +1986,13 @@
                 const isPro = personaStyle === "professional";
                 const styleGuidelines = isPro ?
                     "使用正式专业的语气回复。称呼用户为'您'。不使用表情符号。" :
-                    "使用温暖口语化的语气回复。称呼用户为'你'。可以适当使用1-2个表情符号。";
+                    `使用温暖口语化的语气回复。称呼用户为'你'。可以适当使用1-2个表情符号。
+偏好相关的回复风格：
+- 用户说有固定旅伴（如"和果果一起"）→ 记录后夸："哇塞记住啦，好甜蜜呢！小旅羡慕噜~下次不问啦直接默认你们一起！"
+- 用户说一个人旅行 → "哇塞哇塞，一个人去旅行感觉好酷！小旅会一直陪你哒~"
+- 用户说饮食偏好 → "记下啦！下次推荐美食会帮你避开/优先~"
+- 用户说健康约束 → "收到！以后规划会帮你避开xxx相关的活动~"
+- 记录完后继续正常流程，不要过度夸，1句即可。`;
                 const memoryCtx = memory.getMemoryContext();
 
                 return `你是"小旅"，一个AI旅行规划助手。你说话非常简洁。
@@ -2016,6 +2039,22 @@
 - get_weather / search_attractions / search_web 均不限国内外，都先尝试调用，工具内部会自动判断是否支持。国内优先 search_attractions，国际或 search_attractions 无结果时用 search_web 补搜
 - 任何工具调用失败 → 用其他工具兜底，仍失败则基于自身知识生成方案
 - 生成方案前：查天气 → 搜景点美食 → 整合生成。天气和POI结果必须写入方案。
+
+## 用户偏好管理（长期记忆，跨行程复用）
+**何时记录：**
+- 用户提到专属旅伴名字（如"和果果一起"）→ 调 update_preference(key="companion_name", value="果果")
+- 用户提到家庭结构（如"两个大人一个小孩"）→ 调 update_preference(key="companion_count", value="2大1小")
+- 用户说一个人旅行 → 调 update_preference(key="solo_travel", value="yes")
+- 用户说饮食偏好（爱吃辣、不吃海鲜等）→ 调 update_preference(key="food_like"或"food_dislike", value="具体内容")
+- 用户说健康约束（恐高、晕车等）→ 调 update_preference(key="health", value="恐高")
+- 用户说作息偏好（不喜欢晚上出门等）→ 调 update_preference(key="routine", value="不喜欢晚上出门")
+
+**如何复用：**
+- 每次新对话开始时，检查【长期偏好】中是否有旅伴/健康/饮食等信息
+- 有旅伴记录 → 问人数时自然带出："这次还是和果果一起吗？是的话就是2人哦~"
+- 用户确认 → 自动填入人数，无需再问"几个人"
+- 有健康约束 → 生成方案时自动避开相关活动，无需反复确认
+- 有饮食偏好 → 推荐美食时自动过滤
 
                 ${styleGuidelines}
 
@@ -2811,6 +2850,29 @@
             function extractTripInfoFromText(text) {
                 const updates = {};
                 const numMap = { '一': 1, '二': 2, '两': 2, '三': 3, '四': 4, '五': 5, '六': 6, '七': 7, '八': 8, '九': 9, '十': 10 };
+                const genericTerms = ['朋友', '家人', '同事', '同学', '男朋友', '女朋友', '对象', '爸妈', '父母', '孩子', '小孩', '闺蜜', '兄弟', '姐妹', '老公', '老婆', '室友', '亲戚', '领导', '队友'];
+
+                // 旅伴名字：和vv一起去、和果果一起、跟果果去
+                const compPatterns = [
+                    /和([a-zA-Z]{1,10})\s*(?:一起|去|玩|旅行|旅游)/,
+                    /和([^\s，。,！,!？?….\d一-鿿]{1,4})\s*(?:一起|去)/,  // emoji/special chars as name
+                ];
+                for (const p of compPatterns) {
+                    const m = text.match(p);
+                    if (m && !genericTerms.includes(m[1])) {
+                        console.log("[JS兜底] 旅伴名字:", m[1]);
+                        memory.updatePreference("companion_name", m[1]);
+                        if (!memory.tripInfo.people) updates.people = 2;
+                        break;
+                    }
+                }
+                // 中文旅伴名：和果果一起、跟小明去
+                const cnCompMatch = text.match(/(?:和|跟)([一-鿿]{1,3})\s*(?:一起|去|玩|旅行|旅游)/);
+                if (cnCompMatch && !genericTerms.includes(cnCompMatch[1]) && !memory.preferences.companion_name) {
+                    console.log("[JS兜底] 旅伴名字:", cnCompMatch[1]);
+                    memory.updatePreference("companion_name", cnCompMatch[1]);
+                    if (!memory.tripInfo.people) updates.people = 2;
+                }
 
                 // 人数：2个人、2人、两个人、两位、2位
                 const peoplePatterns = [
