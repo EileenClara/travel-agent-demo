@@ -1391,6 +1391,18 @@
         </div>
     </div>
 
+    <!-- Destination Switch Modal -->
+    <div class="modal-overlay hidden" id="switchDestModal">
+        <div class="modal">
+            <h3>检测到新目的地</h3>
+            <div class="conflict-desc" id="switchDestDesc"></div>
+            <div class="conflict-options">
+                <button id="switchMergeBtn" style="background:#424242;color:#fff;">🔗 合并规划：两个城市一起去</button>
+                <button id="switchNewBtn" style="background:#333;color:#ccc;">🆕 开始新旅行计划</button>
+            </div>
+        </div>
+    </div>
+
 
     <script>
         (function() {
@@ -1402,7 +1414,7 @@
             // ============================================================
             const DASHSCOPE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions";
             const DDG_URL = "https://api.duckduckgo.com/";
-            const MAX_REACT_ROUNDS = 3;
+            const MAX_REACT_ROUNDS = 10;
 
             function loadSetting(key, fallback) {
                 try {
@@ -1911,15 +1923,14 @@
                     const oldDest = memory.tripInfo.destination;
                     const newDest = args.destination;
                     console.log("[update_trip_info] oldDest:", oldDest, "newDest:", newDest, "args:", JSON.stringify(args));
-                    // 检测目的地变化 → 归档旧计划，延迟到 sendMessage 统一重置
+                    // 检测目的地变化 → 返回标记，由 UI 层弹窗询问用户
                     if (newDest && oldDest && newDest !== oldDest) {
-                        console.log("[update_trip_info] ✅ 目的地变化，触发归档 + _justSwitched");
-                        memory.archiveCurrentTrip();
-                        memory.lastPlanText = "";
-                        memory.tripInfo = {};
-                        memory.weatherData = null;
-                        memory._justSwitched = true;
-                        memory.save();
+                        console.log("[update_trip_info] ✅ 目的地变化，返回 __switchDest 标记");
+                        return JSON.stringify({
+                            __switchDest: true,
+                            oldDest: oldDest,
+                            newDest: newDest
+                        });
                     }
                     const updates = {};
                     ["destination", "days", "people", "budget", "style", "health"].forEach(k => {
@@ -1970,7 +1981,7 @@
 
    **回应规则：先确认所有已提供信息，再问缺失项。**
    用户可能一次性给出多条信息（如"大理4天两个人"），你必须全部确认，例如：
-   "好的，大理4天2人记下了～ 喜欢什么风格呢？"
+   "好嘞，大理4天2人记下了～ 喜欢什么风格呢？"
    "收到，大理亲子游4天2人～ 预算大概多少呢？"
    禁止只回应部分信息而忽略其他已提供的信息！
 
@@ -1979,10 +1990,10 @@
    - 风格已知但天数未知 → 只能问天数，例如："打算玩几天呢？" 禁止问人数/预算
    - 天数已知但人数未知 → 只能问人数，例如："几个人一起呀？"
    - 人数已知但预算未知 → 只能问预算，例如："预算大概多少呢？"
-   范例："杭州这几天有雨带伞哦～ 喜欢休闲还是人文历史呢？"
-   范例："好的，大理4天2人记下了～ 喜欢什么风格呢？"
+   范例："杭州这几天有雨带伞嗷～ 喜欢休闲还是人文历史呢？"
+   范例："好哒，大理4天2人记下啦～ 喜欢什么风格呢？"
 
-2. 信息齐全 → 不要再问问题！直接调 search_attractions 搜景点和美食，生成完整方案。
+2. 信息齐全 → 如果预算未知，先问一句"预算大概多少呢？"，用户提供后再调 get_weather 查天气 + search_attractions 搜景点美食生成方案。用户说"随便"/"没想好"则跳过预算直接生成方案。
    方案用自然语言段落写，每天行程必须独立成段，以"第一天："开头，段间用空行分隔。
    示例格式：
    "第一天：上午xxx，下午xxx。推荐美食：xxx。
@@ -1992,17 +2003,19 @@
    方案结尾不要提问，自然收尾即可。
 
 ## 信息齐全的判断标准
-目的地 + 风格 + 天数 + 人数 四个字段都有值 = 信息齐全（预算选了更佳，非必须）。
-此时你必须立即生成方案，不许继续追问"住什么类型的酒店""想去哪个区"之类的问题。
+目的地 + 风格 + 天数 + 人数 四个字段都有值 = 基本信息齐全。
+此时检查预算是否已知：预算未知 → 先问预算（用户拒绝再跳过）；预算已知 → 直接生成方案。
+不许追问"住什么类型的酒店""想去哪个区"之类的无关问题。
 
 ## 工具调用规则
-- 用户提到任何城市（含"想去X""换X""改到X""去X"等） → 无条件调 update_trip_info 和 get_weather。即使是"那杭州呢""还是去北京吧"也要立刻提取城市名调用
-- 如果之前已有其他目的地，新城市会被系统自动识别为切换目的地并归档旧计划
-- 用户提天数/人数/预算/风格 → 调 update_trip_info
-- 单条消息含多个信息 → 全部填入 update_trip_info
-- 国际目的地（非中国城市）→ get_weather和search_attractions仅覆盖国内，改用search_web搜天气和攻略
-- search_web可能因网络限制不可用，此时请基于自身知识直接生成方案
-- 生成方案前 → 国内用search_attractions搜景点美食，国际用search_web搜攻略（失败则自编）
+- 用户提到任何城市（含"想去X""换X""改到X""去X"等） → 无条件调 update_trip_info。即使是"那杭州呢""还是去北京吧"也要立刻提取城市名调用。不要在此阶段调 get_weather，天气等到方案生成时再查。
+- 如果之前已有其他目的地，新城市会被系统自动识别为切换目的地并弹窗确认
+- 用户提天数/人数/预算/风格 → 调 update_trip_info，必须调用！
+- 用户提饮食/作息/健康/旅伴等个人偏好 → 调 update_preference
+- 单条消息含多个信息 → 全部填入对应工具，不要遗漏
+- get_weather / search_attractions / search_web 均不限国内外，都先尝试调用，工具内部会自动判断是否支持。国内优先 search_attractions，国际或 search_attractions 无结果时用 search_web 补搜
+- 任何工具调用失败 → 用其他工具兜底，仍失败则基于自身知识生成方案
+- 生成方案前：查天气 → 搜景点美食 → 整合生成。天气和POI结果必须写入方案。
 
                 ${styleGuidelines}
 
@@ -2044,7 +2057,7 @@
                 return resp.json();
             }
 
-            async function processMessage(userText, onToolCall, onConflict) {
+            async function processMessage(userText, onToolCall, onConflict, onSwitchDest) {
                 memory.addMessage("user", userText);
 
                 const messages = buildMessages();
@@ -2101,6 +2114,40 @@
                                 }
                             } catch (e) {
                                 result = `工具执行失败: ${e.message}`;
+                            }
+
+                            // 目的地切换检测 —— 弹窗询问用户
+                            if (toolName === "update_trip_info") {
+                                let switchData = null;
+                                try {
+                                    const parsed = JSON.parse(result);
+                                    if (parsed.__switchDest) switchData = parsed;
+                                } catch (e) {}
+                                if (switchData && onSwitchDest) {
+                                    const choice = await onSwitchDest(switchData);
+                                    if (choice === "merge") {
+                                        // 合并：目的地改为 "城市A+城市B"
+                                        const combinedDest = switchData.oldDest + "+" + switchData.newDest;
+                                        memory.updateTripInfo({
+                                            destination: combinedDest
+                                        });
+                                        updateSidebarUI();
+                                        result = `用户选择合并规划：${switchData.oldDest}和${switchData.newDest}一起玩。目的地已更新为"${combinedDest}"。`;
+                                    } else {
+                                        // 新计划：归档旧计划，重置，记录新目的地
+                                        memory.archiveCurrentTrip();
+                                        memory.lastPlanText = "";
+                                        memory.tripInfo = {};
+                                        memory.weatherData = null;
+                                        memory._justSwitched = true;
+                                        memory.updateTripInfo({
+                                            destination: switchData.newDest
+                                        });
+                                        memory.save();
+                                        updateSidebarUI();
+                                        result = `用户选择开始新计划。旧计划已归档，目的地已设为${switchData.newDest}。`;
+                                    }
+                                }
                             }
 
                             // update_trip_info / update_preference 需要反映到侧边栏
@@ -2237,13 +2284,7 @@
                 if (!info.destination || info.style) return;
                 if (document.querySelector(".style-buttons")) return;
 
-                // 禁用输入框，强制通过按钮选择
-                if (input) {
-                    input.disabled = true;
-                }
-                if (sendBtn) {
-                    sendBtn.disabled = true;
-                }
+                // 不锁定输入框，用户也可以自己打字输入风格
 
                 // 气泡包装（与 .msg-agent 对齐）
                 const wrapper = document.createElement("div");
@@ -2627,6 +2668,35 @@
                 });
             }
 
+            // ---- 目的地切换弹窗 ----
+            function showSwitchDestDialog(switchData) {
+                return new Promise(resolve => {
+                    const overlay = $("switchDestModal");
+                    const desc = $("switchDestDesc");
+                    const mergeBtn = $("switchMergeBtn");
+                    const newBtn = $("switchNewBtn");
+                    if (!overlay || !desc || !mergeBtn || !newBtn) {
+                        resolve("new");
+                        return;
+                    }
+                    desc.innerHTML = nl2br(
+                        `当前正在规划「${switchData.oldDest}」的旅行。\n` +
+                        `你提到了新目的地「${switchData.newDest}」，要怎么做呢？`
+                    );
+
+                    const cleanup = (choice) => {
+                        overlay.classList.add("hidden");
+                        mergeBtn.onclick = null;
+                        newBtn.onclick = null;
+                        resolve(choice);
+                    };
+                    mergeBtn.onclick = () => cleanup("merge");
+                    newBtn.onclick = () => cleanup("new");
+
+                    overlay.classList.remove("hidden");
+                });
+            }
+
             // ---- 侧边栏 ----
             function updateSidebarUI() {
                 const infoDiv = $("tripInfo");
@@ -2737,6 +2807,44 @@
                 updateSidebarUI();
             }
 
+            // ---- JS 兜底提取（模型可能漏调 update_trip_info） ----
+            function extractTripInfoFromText(text) {
+                const updates = {};
+                const numMap = { '一': 1, '二': 2, '两': 2, '三': 3, '四': 4, '五': 5, '六': 6, '七': 7, '八': 8, '九': 9, '十': 10 };
+
+                // 人数：2个人、2人、两个人、两位、2位
+                const peoplePatterns = [
+                    /(\d+)\s*个?\s*人/, /(\d+)\s*位/,
+                    /([一二两三四五六七八九十])\s*个?\s*人/,
+                ];
+                for (const p of peoplePatterns) {
+                    const m = text.match(p);
+                    if (m) { updates.people = numMap[m[1]] || parseInt(m[1]); break; }
+                }
+
+                // 天数：4天、四天
+                const dm = text.match(/(\d+)\s*天/);
+                if (dm) updates.days = parseInt(dm[1]);
+
+                // 预算：3000预算、预算3000、3万预算、3k
+                const bm1 = text.match(/(\d+)\s*[块元]?\s*预算/);
+                const bm2 = text.match(/预算\s*(\d+)/);
+                const bm3 = text.match(/(\d+)\s*万\s*(?:预算)?/);
+                const bm4 = text.match(/(\d+)[kK]\s*(?:预算)?/);
+                const bm = bm1 || bm2 || bm3 || bm4;
+                if (bm) {
+                    updates.budget = parseInt(bm[1]);
+                    if (bm === bm3) updates.budget *= 10000;
+                    if (bm === bm4) updates.budget *= 1000;
+                }
+
+                if (Object.keys(updates).length > 0) {
+                    console.log("[JS兜底] 正则提取:", JSON.stringify(updates));
+                    memory.updateTripInfo(updates);
+                    updateSidebarUI();
+                }
+            }
+
             // ---- 发送 ----
             async function sendMessage() {
                 if (!input || !sendBtn) return;
@@ -2750,6 +2858,7 @@
                 sendBtn.disabled = true;
 
                 addUserMsg(text);
+                extractTripInfoFromText(text);
                 const typing = showTyping();
                 const toolCallEls = [];
 
@@ -2764,6 +2873,13 @@
                             // 冲突回调——弹窗覆盖在 typing 之上，不销毁 typing
                             typing.setText("检测到偏好冲突，请选择...");
                             const choice = await showConflictDialog(conflictArgs);
+                            typing.setText("");
+                            return choice;
+                        },
+                        async(switchData) => {
+                            // 目的地切换回调
+                            typing.setText("检测到新目的地，请选择...");
+                            const choice = await showSwitchDestDialog(switchData);
                             typing.setText("");
                             return choice;
                         }
@@ -2783,10 +2899,9 @@
 
                     if (result.type === "response") {
                         const info = memory.tripInfo;
-                        const hasAll = info.destination && info.days && info.people && info.style;
                         const isPlan = /第[一二三四五六七八九十\d]+天[：:]/.test(result.text);
 
-                        if (hasAll && isPlan) {
+                        if (isPlan) {
                             addPlanCard(result.text);
                         } else {
                             addAgentMsg(result.text);
@@ -2803,11 +2918,8 @@
                     addAgentMsg("抱歉，出了点问题：" + (err.message || err) +
                         "\n\n请检查网络和 API 设置后重试。");
                 } finally {
-                    // 如果风格按钮在展示中，不重新启用输入框（需通过按钮选择）
-                    if (!document.querySelector(".style-buttons")) {
-                        input.disabled = false;
-                        sendBtn.disabled = false;
-                    }
+                    input.disabled = false;
+                    sendBtn.disabled = false;
                     input.focus();
                 }
             }
