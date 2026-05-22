@@ -2966,9 +2966,63 @@
                     if (bm === bm4) updates.budget *= 1000;
                 }
 
+                // 目的地切换：想去澳门、还想去澳门、换成杭州、改到北京、还是去三亚
+                // 不在 extractTripInfoFromText 里直接改，而是留给 processMessage 弹窗
+                if (memory.tripInfo.destination && !updates.destination) {
+                    const switchMatch = text.match(/(?:想去|还想去|改成?|换成?|切换到?|改为|还是去|换去|换到)\s*([一-鿿a-zA-Z·]{2,8})/);
+                    if (switchMatch) {
+                        const newCity = switchMatch[1];
+                        const notCity = /^(?:吃饭|酒店|餐厅|景点|民宿|机票|火车|高铁|飞机|自驾|公交|地铁|打车|步行|一下|看看|玩玩|逛逛|睡觉|休息|这个|那个|哪里|什么)/;
+                        if (!notCity.test(newCity) && newCity !== memory.tripInfo.destination) {
+                            // 模拟 update_trip_info 切目的地，触发 __switchDest 弹窗
+                            memory._pendingSwitchDest = newCity;
+                            console.log("[JS兜底] 目的地切换检测:", memory.tripInfo.destination, "→", newCity);
+                        }
+                    }
+                }
+
                 if (Object.keys(updates).length > 0) {
                     console.log("[JS兜底] 正则提取:", JSON.stringify(updates));
                     memory.updateTripInfo(updates);
+                    updateSidebarUI();
+                }
+
+                // 饮食偏好（独立于tripInfo，直接写preferences）
+                const foodDislike = text.match(/(?:不(?:喜欢|爱|想)?吃|讨厌吃|不吃|忌口)\s*([一-鿿a-zA-Z]{1,6})/);
+                if (foodDislike) {
+                    const prev = memory.preferences.food_dislike || '';
+                    const next = prev ? prev + '、' + foodDislike[1] : foodDislike[1];
+                    memory.updatePreference("food_dislike", next);
+                    console.log("[JS兜底] 饮食偏好-忌口:", next);
+                    updateSidebarUI();
+                }
+                const foodLike = text.match(/(?:喜欢|爱吃|想吃|好爱吃|超爱吃|特爱吃)\s*([一-鿿a-zA-Z]{1,6})/);
+                if (foodLike) {
+                    const prev = memory.preferences.food_like || '';
+                    const next = prev ? prev + '、' + foodLike[1] : foodLike[1];
+                    memory.updatePreference("food_like", next);
+                    console.log("[JS兜底] 饮食偏好-爱吃:", next);
+                    updateSidebarUI();
+                }
+
+                // 健康约束
+                const healthMatch = text.match(/(恐高|晕车|晕船|行动不便|过敏|恐飞|密闭恐惧|怕[高一-鿿]{1,4})/);
+                if (healthMatch) {
+                    memory.updatePreference("health", healthMatch[1]);
+                    console.log("[JS兜底] 健康约束:", healthMatch[1]);
+                    updateSidebarUI();
+                }
+
+                // 独行偏好 / 作息偏好
+                if (/(?:我)?(?:喜欢|爱|习惯|总是|经常)?\s*(?:一个人|独自|自己)\s*(?:旅行|旅游|去|玩|出游)/.test(text)) {
+                    memory.updatePreference("solo_travel", "yes");
+                    console.log("[JS兜底] 独行偏好");
+                    updateSidebarUI();
+                }
+                const routineMatch = text.match(/(?:不(?:喜欢|爱|想)|讨厌|烦)\s*(?:晚上出门|早起|熬夜|爬山|走路|坐(?:长(?:途|时间))?车)/);
+                if (routineMatch) {
+                    memory.updatePreference("routine", routineMatch[0]);
+                    console.log("[JS兜底] 作息偏好:", routineMatch[0]);
                     updateSidebarUI();
                 }
             }
@@ -2987,6 +3041,29 @@
 
                 addUserMsg(text);
                 extractTripInfoFromText(text);
+
+                // JS兜底检测到目的地切换 → 弹窗确认
+                if (memory._pendingSwitchDest) {
+                    const newDest = memory._pendingSwitchDest;
+                    memory._pendingSwitchDest = null;
+                    const choice = await showSwitchDestDialog({
+                        oldDest: memory.tripInfo.destination,
+                        newDest: newDest
+                    });
+                    if (choice === "merge") {
+                        memory.updateTripInfo({ destination: memory.tripInfo.destination + "+" + newDest });
+                    } else {
+                        memory.archiveCurrentTrip();
+                        memory.lastPlanText = "";
+                        memory.tripInfo = {};
+                        memory.weatherData = null;
+                        memory._justSwitched = true;
+                        memory.updateTripInfo({ destination: newDest });
+                        memory.save();
+                    }
+                    updateSidebarUI();
+                }
+
                 const typing = showTyping();
                 const toolCallEls = [];
 
@@ -3107,7 +3184,12 @@
                     clearMemory = true, userMsg = null
                 } = options;
                 if (clearMemory) {
-                    memory.clear();
+                    // 清除对话数据，但保留用户偏好和标星（跨对话持久化）
+                    memory.messages = [];
+                    memory.tripInfo = {};
+                    memory.weatherData = null;
+                    memory.lastPlanText = "";
+                    memory.save();
                 } else {
                     memory.messages = [];
                     memory.save();
