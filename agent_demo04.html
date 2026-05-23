@@ -441,26 +441,32 @@
             user-select: none;
             transition: background 0.2s, border-color 0.2s;
         }
+        
         .pref-tag:hover {
             background: #e4e4e4;
         }
+        
         .pref-tag.starred {
             background: #fffde7;
             border-color: #ffd54f;
             color: #5d4037;
         }
+        
         .pref-tag.starred:hover {
             background: #fff9c4;
         }
+        
         .pref-tag .pref-star {
             font-size: 0.85rem;
             line-height: 1;
             opacity: 0.5;
             transition: opacity 0.2s;
         }
+        
         .pref-tag.starred .pref-star {
             opacity: 1;
         }
+        
         .pref-tag .pref-del {
             font-size: 0.75rem;
             line-height: 1;
@@ -469,9 +475,11 @@
             transition: opacity 0.2s, color 0.2s;
             margin-left: 2px;
         }
+        
         .pref-tag:hover .pref-del {
             opacity: 0.6;
         }
+        
         .pref-tag .pref-del:hover {
             opacity: 1;
             color: #e53935;
@@ -490,6 +498,7 @@
             position: relative;
             overflow: hidden;
         }
+        
         .history-item.has-photo::before {
             content: '';
             position: absolute;
@@ -500,45 +509,50 @@
             border-radius: inherit;
             z-index: 0;
         }
+        
         .history-item.has-photo {
             border-color: transparent;
             color: #fff;
-            text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
         }
+        
         .history-item.has-photo::after {
             content: '';
             position: absolute;
             inset: 0;
-            background: linear-gradient(135deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.25) 100%);
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0.25) 100%);
             border-radius: inherit;
             z-index: 1;
         }
-        .history-item.has-photo > * {
+        
+        .history-item.has-photo>* {
             position: relative;
             z-index: 2;
         }
+        
         .history-item.has-photo .history-item-name,
         .history-item.has-photo .history-item-meta,
         .history-item.has-photo .history-item-time {
             color: #fff;
         }
-
+        
         .history-item:hover {
             background-color: #ebebeb;
             border-color: #d0d0d0;
             transform: translateY(-1px);
         }
+        
         .history-item.has-photo:hover::after {
-            background: linear-gradient(135deg, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.35) 100%);
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.65) 0%, rgba(0, 0, 0, 0.35) 100%);
         }
-
+        
         .history-item-name {
             font-weight: 600;
             font-size: 0.82rem;
             color: #333;
             margin-bottom: 2px;
         }
-
+        
         .history-item-meta {
             font-size: 0.68rem;
             color: #999;
@@ -546,13 +560,13 @@
             gap: 8px;
             flex-wrap: wrap;
         }
-
+        
         .history-item-time {
             font-size: 0.66rem;
             color: #999;
             margin-top: 2px;
         }
-
+        
         .history-item-delete {
             float: right;
             width: 20px;
@@ -565,10 +579,11 @@
             cursor: pointer;
             transition: all var(--transition);
         }
+        
         .history-item.has-photo .history-item-delete {
-            color: rgba(255,255,255,0.7);
+            color: rgba(255, 255, 255, 0.7);
         }
-
+        
         .history-item-delete:hover {
             background: #ffebee;
             color: #e53935;
@@ -1333,8 +1348,8 @@
             display: none !important;
         }
         /* ========== Responsive ========== */
-        
         /* ========== Folk Culture Mini Flip Cards (3-5 cards) ========== */
+        
         .folk-cards-row {
             display: flex;
             gap: 12px;
@@ -1343,9 +1358,16 @@
             scroll-snap-type: x mandatory;
             -webkit-overflow-scrolling: touch;
         }
-        .folk-cards-row::-webkit-scrollbar { height: 4px; }
-        .folk-cards-row::-webkit-scrollbar-thumb { background: #555; border-radius: 2px; }
-
+        
+        .folk-cards-row::-webkit-scrollbar {
+            height: 4px;
+        }
+        
+        .folk-cards-row::-webkit-scrollbar-thumb {
+            background: #555;
+            border-radius: 2px;
+        }
+        
         .folk-mini-card {
             width: 140px;
             height: 180px;
@@ -1354,7 +1376,7 @@
             flex-shrink: 0;
             scroll-snap-align: start;
         }
-
+        
         .folk-mini-inner {
             position: relative;
             width: 100%;
@@ -1364,11 +1386,11 @@
             box-shadow: 0px 0px 8px 1px #00000088;
             border-radius: 12px;
         }
-
+        
         .folk-mini-card.flipped .folk-mini-inner {
             transform: rotateY(180deg);
         }
-
+        
         .folk-mini-front,
         .folk-mini-back {
             position: absolute;
@@ -1378,8 +1400,8 @@
             border-radius: 12px;
             overflow: hidden;
         }
-
         /* 正面 — 民俗名称（默认可见） */
+        
         .folk-mini-front {
             display: flex;
             flex-direction: column;
@@ -1390,15 +1412,14 @@
             border: 1px solid #333;
             z-index: 1;
         }
-
+        
         .folk-mini-front-bg {
             position: absolute;
             inset: 0;
-            background: radial-gradient(circle at 30% 50%, rgba(255,153,102,0.15) 0%, transparent 60%),
-                        radial-gradient(circle at 70% 80%, rgba(255,51,85,0.1) 0%, transparent 50%);
+            background: radial-gradient(circle at 30% 50%, rgba(255, 153, 102, 0.15) 0%, transparent 60%), radial-gradient(circle at 70% 80%, rgba(255, 51, 85, 0.1) 0%, transparent 50%);
             z-index: 0;
         }
-
+        
         .folk-mini-name {
             position: relative;
             z-index: 1;
@@ -1409,15 +1430,15 @@
             line-height: 1.3;
             padding: 0 8px;
         }
-
+        
         .folk-mini-hint {
             position: relative;
             z-index: 1;
             font-size: 0.58rem;
             color: #888;
         }
-
         /* 背面 — 简介（翻转后可见） */
+        
         .folk-mini-back {
             transform: rotateY(180deg);
             background: #151520;
@@ -1427,7 +1448,7 @@
             padding: 12px;
             border: 1px solid #3a3555;
         }
-
+        
         .folk-mini-back-content {
             width: 100%;
             height: 100%;
@@ -1436,14 +1457,14 @@
             gap: 6px;
             overflow-y: auto;
         }
-
+        
         .folk-mini-back-title {
             font-size: 0.72rem;
             font-weight: 700;
             color: #ff9966;
             text-align: center;
         }
-
+        
         .folk-mini-back-desc {
             font-size: 0.64rem;
             line-height: 1.55;
@@ -1451,12 +1472,12 @@
             margin: 0;
             text-align: left;
         }
-
         /* ========== Daily Itinerary Flow ========== */
+        
         .flow-section {
             margin: 14px 0 6px;
         }
-
+        
         .flow-day-header {
             font-size: 0.88rem;
             font-weight: 700;
@@ -1464,12 +1485,12 @@
             margin-bottom: 6px;
             padding-left: 2px;
         }
-
+        
         .flow-line {
             position: relative;
             padding-left: 26px;
         }
-
+        
         .flow-line::before {
             content: '';
             position: absolute;
@@ -1480,12 +1501,12 @@
             background: linear-gradient(to bottom, var(--primary), #40c9ff, var(--primary));
             border-radius: 1px;
         }
-
+        
         .flow-stop {
             position: relative;
             margin-bottom: 12px;
         }
-
+        
         .flow-stop::before {
             content: '';
             position: absolute;
@@ -1498,27 +1519,27 @@
             box-shadow: 0 0 6px rgba(133, 229, 255, 0.5);
             z-index: 2;
         }
-
+        
         .flow-place-card {
             background: #3a3545;
             border-radius: 10px;
             padding: 9px 12px;
             border-left: 3px solid #40c9ff;
         }
-
+        
         .flow-place-card .place-name {
             font-weight: 700;
             font-size: 0.8rem;
             color: #e8e6f0;
         }
-
+        
         .flow-place-card .place-desc {
             font-size: 0.7rem;
             color: #b0adc0;
             margin-top: 3px;
             line-height: 1.5;
         }
-
+        
         .flow-tip-card {
             background: transparent;
             border: 1px dashed #555;
@@ -1529,12 +1550,12 @@
             color: #b0adc0;
             line-height: 1.4;
         }
-
+        
         .flow-tip-card .tip-icon {
             margin-right: 4px;
         }
-
         /* ========== Plan Card Section Title ========== */
+        
         .plan-card .section-title {
             font-size: 0.88rem;
             font-weight: 700;
@@ -1543,7 +1564,7 @@
             padding-bottom: 4px;
             border-bottom: 1px solid var(--border);
         }
-
+        
         @media (max-width:640px) {
             .chat-container {
                 padding: 8px 8px 4px;
@@ -2120,18 +2141,34 @@
                 // WMO Weather Code → 中文天气（Open-Meteo用）
                 _wmoToChinese(code) {
                     const map = {
-                        0: '晴', 1: '晴',
-                        2: '多云', 3: '阴',
-                        45: '雾', 48: '雾凇',
-                        51: '小雨', 53: '小雨', 55: '小雨',
-                        56: '冻毛毛雨', 57: '冻毛毛雨',
-                        61: '中雨', 63: '中雨', 65: '大雨',
-                        66: '冻雨', 67: '冻雨',
-                        71: '小雪', 73: '中雪', 75: '大雪',
+                        0: '晴',
+                        1: '晴',
+                        2: '多云',
+                        3: '阴',
+                        45: '雾',
+                        48: '雾凇',
+                        51: '小雨',
+                        53: '小雨',
+                        55: '小雨',
+                        56: '冻毛毛雨',
+                        57: '冻毛毛雨',
+                        61: '中雨',
+                        63: '中雨',
+                        65: '大雨',
+                        66: '冻雨',
+                        67: '冻雨',
+                        71: '小雪',
+                        73: '中雪',
+                        75: '大雪',
                         77: '雪粒',
-                        80: '阵雨', 81: '阵雨', 82: '强阵雨',
-                        85: '阵雪', 86: '阵雪',
-                        95: '雷暴', 96: '雷暴冰雹', 99: '雷暴冰雹'
+                        80: '阵雨',
+                        81: '阵雨',
+                        82: '强阵雨',
+                        85: '阵雪',
+                        86: '阵雪',
+                        95: '雷暴',
+                        96: '雷暴冰雹',
+                        99: '雷暴冰雹'
                     };
                     return map[code] || `天气代码${code}`;
                 },
@@ -2195,14 +2232,17 @@
                     const dates = daily.time || [];
                     const days = dates.map((date, i) => ({
                         fxDate: date,
-                        textDay: ToolExecutors._wmoToChinese(daily.weathercode?.[i]),
-                        tempMax: String(Math.round(daily.temperature_2m_max?.[i] ?? 0)),
-                        tempMin: String(Math.round(daily.temperature_2m_min?.[i] ?? 0)),
+                        textDay: ToolExecutors._wmoToChinese(daily.weathercode ? .[i] ? ? 0),
+                        tempMax: String(Math.round(daily.temperature_2m_max ? .[i] ? ? 0)),
+                        tempMin: String(Math.round(daily.temperature_2m_min ? .[i] ? ? 0)),
                         humidity: '--', // Open-Meteo 免费版不提供湿度
-                        windDirDay: ToolExecutors._windDegToChinese(daily.wind_direction_10m_dominant?.[i]) + '风',
-                        windScaleDay: String(ToolExecutors._kmhToBeaufort(daily.wind_speed_10m_max?.[i])),
+                        windDirDay: ToolExecutors._windDegToChinese(daily.wind_direction_10m_dominant ? .[i]) + '风',
+                        windScaleDay: String(ToolExecutors._kmhToBeaufort(daily.wind_speed_10m_max ? .[i])),
                     }));
-                    return { city: locName, days };
+                    return {
+                        city: locName,
+                        days
+                    };
                 },
 
                 async get_weather(args) {
@@ -2342,34 +2382,65 @@
                     const city = args.city;
                     // 常用中→英城市名映射（Tabiji用英文slug）
                     const zhToEn = {
-                        '纽约': 'New York City', '纽约市': 'New York City',
-                        '东京': 'Tokyo', '京都': 'Kyoto', '大阪': 'Osaka',
-                        '巴黎': 'Paris', '伦敦': 'London', '罗马': 'Rome',
-                        '悉尼': 'Sydney', '墨尔本': 'Melbourne',
-                        '曼谷': 'Bangkok', '清迈': 'Chiang Mai',
-                        '首尔': 'Seoul', '釜山': 'Busan',
-                        '新加坡': 'Singapore', '吉隆坡': 'Kuala Lumpur',
-                        '迪拜': 'Dubai', '阿布扎比': 'Abu Dhabi',
-                        '巴厘岛': 'Bali', '普吉岛': 'Phuket',
-                        '夏威夷': 'Hawaii', '檀香山': 'Honolulu',
-                        '洛杉矶': 'Los Angeles', '旧金山': 'San Francisco',
-                        '芝加哥': 'Chicago', '拉斯维加斯': 'Las Vegas',
-                        '华盛顿': 'Washington D.C.', '波士顿': 'Boston',
-                        '迈阿密': 'Miami', '西雅图': 'Seattle',
-                        '温哥华': 'Vancouver', '多伦多': 'Toronto',
-                        '香港': 'Hong Kong', '澳门': 'Macau',
-                        '台北': 'Taipei', '高雄': 'Kaohsiung',
-                        '莫斯科': 'Moscow', '圣彼得堡': 'Saint Petersburg',
-                        '伊斯坦布尔': 'Istanbul', '开罗': 'Cairo',
-                        '马尔代夫': 'Maldives', '冰岛': 'Iceland',
-                        '米兰': 'Milan', '威尼斯': 'Venice', '佛罗伦萨': 'Florence',
-                        '巴塞罗那': 'Barcelona', '马德里': 'Madrid',
-                        '柏林': 'Berlin', '慕尼黑': 'Munich',
-                        '阿姆斯特丹': 'Amsterdam', '布拉格': 'Prague',
-                        '维也纳': 'Vienna', '布达佩斯': 'Budapest',
-                        '圣托里尼': 'Santorini', '米克诺斯': 'Mykonos',
-                        '北海道': 'Hokkaido', '冲绳': 'Okinawa',
-                        '箱根': 'Hakone', '奈良': 'Nara',
+                        '纽约': 'New York City',
+                        '纽约市': 'New York City',
+                        '东京': 'Tokyo',
+                        '京都': 'Kyoto',
+                        '大阪': 'Osaka',
+                        '巴黎': 'Paris',
+                        '伦敦': 'London',
+                        '罗马': 'Rome',
+                        '悉尼': 'Sydney',
+                        '墨尔本': 'Melbourne',
+                        '曼谷': 'Bangkok',
+                        '清迈': 'Chiang Mai',
+                        '首尔': 'Seoul',
+                        '釜山': 'Busan',
+                        '新加坡': 'Singapore',
+                        '吉隆坡': 'Kuala Lumpur',
+                        '迪拜': 'Dubai',
+                        '阿布扎比': 'Abu Dhabi',
+                        '巴厘岛': 'Bali',
+                        '普吉岛': 'Phuket',
+                        '夏威夷': 'Hawaii',
+                        '檀香山': 'Honolulu',
+                        '洛杉矶': 'Los Angeles',
+                        '旧金山': 'San Francisco',
+                        '芝加哥': 'Chicago',
+                        '拉斯维加斯': 'Las Vegas',
+                        '华盛顿': 'Washington D.C.',
+                        '波士顿': 'Boston',
+                        '迈阿密': 'Miami',
+                        '西雅图': 'Seattle',
+                        '温哥华': 'Vancouver',
+                        '多伦多': 'Toronto',
+                        '香港': 'Hong Kong',
+                        '澳门': 'Macau',
+                        '台北': 'Taipei',
+                        '高雄': 'Kaohsiung',
+                        '莫斯科': 'Moscow',
+                        '圣彼得堡': 'Saint Petersburg',
+                        '伊斯坦布尔': 'Istanbul',
+                        '开罗': 'Cairo',
+                        '马尔代夫': 'Maldives',
+                        '冰岛': 'Iceland',
+                        '米兰': 'Milan',
+                        '威尼斯': 'Venice',
+                        '佛罗伦萨': 'Florence',
+                        '巴塞罗那': 'Barcelona',
+                        '马德里': 'Madrid',
+                        '柏林': 'Berlin',
+                        '慕尼黑': 'Munich',
+                        '阿姆斯特丹': 'Amsterdam',
+                        '布拉格': 'Prague',
+                        '维也纳': 'Vienna',
+                        '布达佩斯': 'Budapest',
+                        '圣托里尼': 'Santorini',
+                        '米克诺斯': 'Mykonos',
+                        '北海道': 'Hokkaido',
+                        '冲绳': 'Okinawa',
+                        '箱根': 'Hakone',
+                        '奈良': 'Nara',
                     };
                     // 中文名先查映射，否则直接用
                     const lookupName = zhToEn[city] || city;
@@ -2508,7 +2579,7 @@
    **提问优先级（只问第一个缺失的，禁止问已提供的）：**
    - 风格未知 → 只能问风格，例如："喜欢休闲度假还是特种兵打卡呢？" 禁止问天数/人数/预算
    - 风格已知但天数未知 → 只能问天数，例如："打算玩几天呢？" 禁止问人数/预算
-   - 天数已知但人数未知 → 只能问人数，例如："几个人一起呀？"
+   - 天数已知但人数未知 → 只能问人数。**重要**：如果【长期偏好】中有"旅伴名字"，必须先问"这次还是和XX一起吗？"，例如："这次还是和果果一起吗？是的话直接2人哦～"。没有旅伴记录时才泛问"几个人一起呀？"
    - 人数已知但预算未知 → 只能问预算，例如："预算大概多少呢？"
    范例："杭州这几天有雨带伞嗷～ 喜欢休闲还是人文历史呢？"
    范例："好哒，大理4天2人记下啦～ 喜欢什么风格呢？"
@@ -2517,20 +2588,25 @@
    方案必须包含以下三个部分，用对应标题分隔：
 
    ## 民俗文化
-   列出3-5个当地特色民俗/文化/故事，每行一个，格式严格为：
+   列出5个当地特色民俗/文化/故事，每行一个，格式严格为：
 	   🎭 名称 — 简介
 	   每行简介不超过150字。禁止合并成段落，禁止用列表符号（- * 1.）。示例：
 	   🎭 苗族银饰 — 国家级非遗，苗族银饰以大、重、多为美，每件银饰都承载着苗族人的历史记忆与族群认同。
-	   🎭 三月三歌节 — 黎族最盛大的传统节日，男女老少身着盛装聚会对歌，被誉为海南的"情人节"。
+	   🎭 三月三歌节 — 黎族最盛大的传ha统节日，男女老少身着盛装聚会对歌，被誉为海南的"情人节"。
 
    ## 每日行程
-   每天行程独立成段，以"第X天："开头。每天按以下格式写：
+   每天行程独立成段，以"第X天："开头。必须根据用户选择的旅行风格来安排行程节奏和选点。
+   行程设计原则：
+   - 同一天的景点必须地理位置相近，避免东奔西跑。按合理动线串联，不顺路的景点放到下一天。
+   - 劳逸结合：安排2-3个核心景点，中间穿插美食/小吃歇脚，避免全天高强度暴走。
+   - 风格匹配：休闲/蜜月风每天2-3个景点，多留发呆时间；打卡/特种兵风每天3-5个景点可紧凑但要动线合理；亲子/老年风每天2个轻松景点，避开险远。
+   每天按以下格式写：
    第X天：
    📍 景点名 — 简要描述（含游玩时间建议）
    🍜 美食/小吃推荐
    💡 实用小贴士（如有，如交通、穿衣提醒）
    📍 景点名 — 简要描述
-   ...（每天2-4个景点，每个景点后跟对应美食或贴士）
+   ...（每个景点后跟对应美食或贴士）
 
    ## 实用提示
    出行小贴士：交通建议、穿衣指南、注意事项等（2-4条即可）。
@@ -3014,7 +3090,7 @@
             function renderPlanHTML(text) {
                 // 检测是否为新格式（有 ## section headers）
                 const hasNewFormat = /^##\s*民俗文化/m.test(text) ||
-                                     /^##\s*每日行程/m.test(text);
+                    /^##\s*每日行程/m.test(text);
 
                 if (!hasNewFormat) {
                     // 回退到原有的 markdown 渲染
@@ -3061,7 +3137,10 @@
                         // 解析 🎭 名称 — 简介 格式
                         let folkMatch = line.match(/^🎭\s*(.+?)\s*[—\-]\s*(.+)/);
                         if (folkMatch) {
-                            folkItems.push({ title: folkMatch[1].trim(), desc: folkMatch[2].trim() });
+                            folkItems.push({
+                                title: folkMatch[1].trim(),
+                                desc: folkMatch[2].trim()
+                            });
                         }
                     } else if (section === "itinerary") {
                         // 天标题
@@ -3120,11 +3199,17 @@
 
                 for (let i = 0; i < lines.length; i++) {
                     let line = lines[i].trim();
-                    if (!line) { html += "<br>"; continue; }
+                    if (!line) {
+                        html += "<br>";
+                        continue;
+                    }
                     if (line.includes("|")) {
                         let cells = line.split("|").map(c => c.trim()).filter(c => c);
                         if (cells.length >= 2) {
-                            if (!inTable) { inTable = true; tableRows = []; }
+                            if (!inTable) {
+                                inTable = true;
+                                tableRows = [];
+                            }
                             if (/^[-:]+$/.test(cells[0])) continue;
                             let tag = tableRows.length === 0 ? "th" : "td";
                             let rowHTML = "<tr>" + cells.map(c => {
@@ -3135,7 +3220,11 @@
                             continue;
                         }
                     }
-                    if (inTable) { html += "<table>" + tableRows.join("") + "</table>"; inTable = false; tableRows = []; }
+                    if (inTable) {
+                        html += "<table>" + tableRows.join("") + "</table>";
+                        inTable = false;
+                        tableRows = [];
+                    }
                     if (/^### /.test(line)) html += "<h4>" + esc(line.replace(/^### /, "")) + "</h4>";
                     else if (/^## /.test(line)) html += "<h3>" + esc(line.replace(/^## /, "")) + "</h3>";
                     else if (/^# /.test(line)) html += "<h3>" + esc(line.replace(/^# /, "")) + "</h3>";
@@ -3321,7 +3410,12 @@
                     const desc = $("switchDestDesc");
                     const mergeBtn = $("switchMergeBtn");
                     const newBtn = $("switchNewBtn");
-                    console.log("[switchDialog] 弹窗元素检查:", { overlay: !!overlay, desc: !!desc, mergeBtn: !!mergeBtn, newBtn: !!newBtn });
+                    console.log("[switchDialog] 弹窗元素检查:", {
+                        overlay: !!overlay,
+                        desc: !!desc,
+                        mergeBtn: !!mergeBtn,
+                        newBtn: !!newBtn
+                    });
                     if (!overlay || !desc || !mergeBtn || !newBtn) {
                         console.error("[switchDialog] ❌ 弹窗元素缺失，静默选择'new'");
                         resolve("new");
@@ -3471,13 +3565,25 @@
             // ---- JS 兜底提取（模型可能漏调 update_trip_info） ----
             function extractTripInfoFromText(text) {
                 const updates = {};
-                const numMap = { '一': 1, '二': 2, '两': 2, '三': 3, '四': 4, '五': 5, '六': 6, '七': 7, '八': 8, '九': 9, '十': 10 };
+                const numMap = {
+                    '一': 1,
+                    '二': 2,
+                    '两': 2,
+                    '三': 3,
+                    '四': 4,
+                    '五': 5,
+                    '六': 6,
+                    '七': 7,
+                    '八': 8,
+                    '九': 9,
+                    '十': 10
+                };
                 const genericTerms = ['朋友', '家人', '同事', '同学', '男朋友', '女朋友', '对象', '爸妈', '父母', '孩子', '小孩', '闺蜜', '兄弟', '姐妹', '老公', '老婆', '室友', '亲戚', '领导', '队友'];
 
                 // 旅伴名字：和vv一起去、和果果一起、跟果果去
                 const compPatterns = [
                     /和([a-zA-Z]{1,10})\s*(?:一起|去|玩|旅行|旅游)/,
-                    /和([^\s，。,！,!？?….\d一-鿿]{1,4})\s*(?:一起|去)/,  // emoji/special chars as name
+                    /和([^\s，。,！,!？?….\d一-鿿]{1,4})\s*(?:一起|去)/, // emoji/special chars as name
                 ];
                 for (const p of compPatterns) {
                     const m = text.match(p);
@@ -3503,7 +3609,10 @@
                 ];
                 for (const p of peoplePatterns) {
                     const m = text.match(p);
-                    if (m) { updates.people = numMap[m[1]] || parseInt(m[1]); break; }
+                    if (m) {
+                        updates.people = numMap[m[1]] || parseInt(m[1]);
+                        break;
+                    }
                 }
 
                 // 天数：4天、四天、3（裸数字，模型问几天时用户只回数字）
@@ -3526,7 +3635,7 @@
                 const bm2 = text.match(/预算\s*(\d+)/);
                 const bm3 = text.match(/(\d+)\s*万\s*(?:预算)?/);
                 const bm4 = text.match(/(\d+)[kK]\s*(?:预算)?/);
-                const bm5_text = text.match(/^\s*(\d{3,})\s*[块元]?\s*$/);  // 纯数字回复：4000、4000元（仅当预算未设置时）
+                const bm5_text = text.match(/^\s*(\d{3,})\s*[块元]?\s*$/); // 纯数字回复：4000、4000元（仅当预算未设置时）
                 const bm5 = bm5_text && !memory.tripInfo.budget ? bm5_text : null;
                 const bm = bm1 || bm2 || bm3 || bm4 || bm5;
                 if (bm) {
@@ -3540,14 +3649,14 @@
                 if (memory.tripInfo.destination && !updates.destination) {
                     const notCity = /^(?:吃饭|酒店|餐厅|景点|民宿|机票|火车|高铁|飞机|自驾|公交|地铁|打车|步行|一下|看看|玩玩|逛逛|睡觉|休息|这个|那个|哪里|什么)/;
                     const commonWords = new Set([
-                        '我们','他们','你们','这个','那个','什么','怎么','为什么',
-                        '可以','应该','一定','必须','喜欢','想要','觉得','知道',
-                        '还是','或者','但是','因为','所以','如果','虽然','然后',
-                        '一起','已经','还有','没有','不是','只是','就是',
-                        '一个','一次','一下','一点','一些','这种','那种',
-                        '今天','明天','昨天','现在','准备','打算','计划',
-                        '大概','左右','可能','也许','应该',
-                        '时间','地方','东西','事情',
+                        '我们', '他们', '你们', '这个', '那个', '什么', '怎么', '为什么',
+                        '可以', '应该', '一定', '必须', '喜欢', '想要', '觉得', '知道',
+                        '还是', '或者', '但是', '因为', '所以', '如果', '虽然', '然后',
+                        '一起', '已经', '还有', '没有', '不是', '只是', '就是',
+                        '一个', '一次', '一下', '一点', '一些', '这种', '那种',
+                        '今天', '明天', '昨天', '现在', '准备', '打算', '计划',
+                        '大概', '左右', '可能', '也许', '应该',
+                        '时间', '地方', '东西', '事情',
                     ]);
                     let newCity = null;
 
@@ -3647,14 +3756,18 @@
                     });
                     console.log("[sendMessage] 用户选择:", choice);
                     if (choice === "merge") {
-                        memory.updateTripInfo({ destination: memory.tripInfo.destination + "+" + newDest });
+                        memory.updateTripInfo({
+                            destination: memory.tripInfo.destination + "+" + newDest
+                        });
                     } else {
                         memory.archiveCurrentTrip();
                         memory.lastPlanText = "";
                         memory.tripInfo = {};
                         memory.weatherData = null;
                         memory._justSwitched = true;
-                        memory.updateTripInfo({ destination: newDest });
+                        memory.updateTripInfo({
+                            destination: newDest
+                        });
                         memory.save();
                     }
                     updateSidebarUI();
@@ -3693,8 +3806,8 @@
                     if (result.type === "response") {
                         const info = memory.tripInfo;
                         const isPlan = /第[一二三四五六七八九十\d]+天[：:]/.test(result.text) ||
-                                       /^##\s*民俗文化/m.test(result.text) ||
-                                       /^##\s*每日行程/m.test(result.text);
+                            /^##\s*民俗文化/m.test(result.text) ||
+                            /^##\s*每日行程/m.test(result.text);
 
                         if (isPlan) {
                             addPlanCard(result.text);
