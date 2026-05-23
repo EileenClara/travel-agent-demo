@@ -3532,8 +3532,10 @@
                         health: "健康"
                     };
                     const rows = [];
+                    // 过滤内部字段和 URL 字段，只显示用户可见的行程信息
+                    const skipKeys = new Set(['photo', 'photoName', 'country', 'cityImage']);
                     Object.keys(info).forEach(k => {
-                        if (info[k]) {
+                        if (info[k] && !k.startsWith('_') && !skipKeys.has(k)) {
                             let display = info[k];
                             if (k === "budget") display = Number(info[k]).toLocaleString() + " 元";
                             if (k === "days") display = info[k] + " 天";
