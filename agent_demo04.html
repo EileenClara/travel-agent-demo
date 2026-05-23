@@ -1472,6 +1472,48 @@
             margin: 0;
             text-align: left;
         }
+        /* 民俗卡片正面 — 背景图清晰显示（80%透明） */
+        .folk-mini-front.has-bg-img {
+            background-size: cover !important;
+            background-position: center !important;
+        }
+        .folk-mini-front.has-bg-img::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.25);
+            border-radius: 12px;
+            z-index: 0;
+        }
+        .folk-mini-front.has-bg-img .folk-mini-name,
+        .folk-mini-front.has-bg-img .folk-mini-hint {
+            position: relative;
+            z-index: 1;
+            text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+        }
+        .folk-mini-front.has-bg-img .folk-mini-front-bg {
+            opacity: 0;
+        }
+        /* 民俗卡片背面 — 毛玻璃模糊效果 */
+        .folk-mini-back.has-bg-img {
+            background-size: cover !important;
+            background-position: center !important;
+        }
+        .folk-mini-back.has-bg-img::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: inherit;
+            background-size: cover;
+            background-position: center;
+            filter: blur(8px) brightness(0.35);
+            border-radius: 12px;
+            z-index: 0;
+        }
+        .folk-mini-back.has-bg-img .folk-mini-back-content {
+            position: relative;
+            z-index: 1;
+        }
         /* ========== Daily Itinerary Flow ========== */
         
         .flow-section {
@@ -2232,12 +2274,12 @@
                     const dates = daily.time || [];
                     const days = dates.map((date, i) => ({
                         fxDate: date,
-                        textDay: ToolExecutors._wmoToChinese(daily.weathercode ? .[i] ? ? 0),
-                        tempMax: String(Math.round(daily.temperature_2m_max ? .[i] ? ? 0)),
-                        tempMin: String(Math.round(daily.temperature_2m_min ? .[i] ? ? 0)),
-                        humidity: '--', // Open-Meteo 免费版不提供湿度
-                        windDirDay: ToolExecutors._windDegToChinese(daily.wind_direction_10m_dominant ? .[i]) + '风',
-                        windScaleDay: String(ToolExecutors._kmhToBeaufort(daily.wind_speed_10m_max ? .[i])),
+                        textDay: ToolExecutors._wmoToChinese(daily.weathercode?.[i] ?? 0),
+                        tempMax: String(Math.round(daily.temperature_2m_max?.[i] ?? 0)),
+                        tempMin: String(Math.round(daily.temperature_2m_min?.[i] ?? 0)),
+                        humidity: '--',
+                        windDirDay: ToolExecutors._windDegToChinese(daily.wind_direction_10m_dominant?.[i]) + '风',
+                        windScaleDay: String(ToolExecutors._kmhToBeaufort(daily.wind_speed_10m_max?.[i])),
                     }));
                     return {
                         city: locName,
@@ -2544,6 +2586,13 @@
                     };
                 },
             };
+
+            // 图片 URL 生成：通过 CSS background-image 加载（无 CORS 限制）
+            // 兜底 API 返回 302 重定向到真实风景图，国内稳定
+            function getBgImageUrl(keyword) {
+                const seed = encodeURIComponent(keyword || Date.now());
+                return 'https://tu.ltyuanfang.cn/api/fengjing.php?seed=' + seed;
+            }
 
             // ============================================================
             // 4. TravelAgent — LLM + ReAct 循环
@@ -3066,15 +3115,13 @@
                 let cardsHTML = items.map(item => {
                     let name = esc(item.title || '民俗');
                     let desc = esc(item.desc || '');
-                    return '<div class="folk-mini-card" onclick="this.classList.toggle(\'flipped\')">' +
+                    return '<div class="folk-mini-card" data-folk-name="' + esc(name) + '" onclick="this.classList.toggle(\'flipped\')">' +
                         '<div class="folk-mini-inner">' +
-                        // 正面（默认）— 民俗名称
                         '<div class="folk-mini-front">' +
                         '<div class="folk-mini-front-bg"></div>' +
                         '<span class="folk-mini-name">' + name + '</span>' +
                         '<span class="folk-mini-hint">点击翻转</span>' +
                         '</div>' +
-                        // 背面（翻转后）— 简介
                         '<div class="folk-mini-back">' +
                         '<div class="folk-mini-back-content">' +
                         '<strong class="folk-mini-back-title">' + name + '</strong>' +
@@ -3085,6 +3132,24 @@
                 }).join('');
                 return '<div class="section-title">🏮 民俗文化</div>' +
                     '<div class="folk-cards-row">' + cardsHTML + '</div>';
+            }
+
+            // 为民俗卡片设置背景图（正面清晰 / 背面毛玻璃，通过 CSS class 控制）
+            function applyFolkCardImages(container) {
+                const dest = memory.tripInfo.destination || '';
+                const country = memory.tripInfo.country || '';
+                const isChina = country === '中国' || /^[一-龥]/.test(dest);
+                if (!isChina) return;
+                const cards = container.querySelectorAll('.folk-mini-card');
+                cards.forEach(card => {
+                    const folkName = card.getAttribute('data-folk-name');
+                    if (!folkName) return;
+                    const imgUrl = getBgImageUrl(folkName + ',culture');
+                    card.querySelector('.folk-mini-front').style.backgroundImage = 'url(' + imgUrl + ')';
+                    card.querySelector('.folk-mini-front').classList.add('has-bg-img');
+                    card.querySelector('.folk-mini-back').style.backgroundImage = 'url(' + imgUrl + ')';
+                    card.querySelector('.folk-mini-back').classList.add('has-bg-img');
+                });
             }
 
             function renderPlanHTML(text) {
@@ -3308,7 +3373,7 @@
                 return '<div class="weather-cards-row">' + cardsHTML + '</div>';
             }
 
-            function addPlanCard(text) {
+            async function addPlanCard(text) {
                 if (!chat) return;
 
                 document.querySelectorAll(".plan-card").forEach(el => {
@@ -3322,8 +3387,21 @@
                 }
                 const el = document.createElement("div");
                 el.className = "message msg-agent";
-                el.innerHTML = '<div class="agent-avatar">✦</div><div class="plan-card">' + weatherHTML + renderPlanHTML(text) + '</div>';
+                const planHTML = renderPlanHTML(text);
+                el.innerHTML = '<div class="agent-avatar">✦</div><div class="plan-card">' + weatherHTML + planHTML + '</div>';
                 chat.appendChild(el);
+
+                const planCardDiv = el.querySelector('.plan-card');
+                if (planCardDiv) {
+                    applyFolkCardImages(planCardDiv);
+                }
+
+                // 城市背景图（供历史记录卡片使用），CSS background-image 无需 CORS
+                const dest = memory.tripInfo.destination;
+                if (dest) {
+                    memory.tripInfo._cityBgUrl = getBgImageUrl(dest + ',landmark');
+                    updateSidebarUI();
+                }
 
                 memory.archiveCurrentTrip();
                 updateSidebarUI();
@@ -3526,7 +3604,7 @@
                                 hour: "2-digit",
                                 minute: "2-digit"
                             }) : "";
-                            const photoUrl = info.photo || "";
+                            const photoUrl = info._cityBgUrl || info.photo || "";
                             const photoClass = photoUrl ? ' has-photo' : '';
                             const photoStyle = photoUrl ? ' style="background-image:url(' + esc(photoUrl) + ')"' : '';
                             return '<div class="history-item' + photoClass + '"' + photoStyle + ' onclick="restoreHistoryChat(' + i + ')" title="点击恢复此计划">' +
