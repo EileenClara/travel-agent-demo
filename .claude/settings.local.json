@@ -16,7 +16,9 @@
       "Bash(git pull *)",
       "Bash(git add *)",
       "Read(//tmp/**)",
-      "Read(//e/tmp/**)"
+      "Read(//e/tmp/**)",
+      "Bash(python -c \"from playwright.sync_api import sync_playwright; p = sync_playwright\\(\\).start\\(\\); browser = p.chromium.launch\\(headless=True\\); page = browser.new_page\\(viewport={'width': 1440, 'height': 900}\\); page.goto\\('http://localhost:8765/agent_demo04.html', timeout=10000\\); page.wait_for_load_state\\('networkidle'\\); page.screenshot\\(path='e:/me/Python/Agent/tmp/dark_mode_check.png', full_page=False\\); browser.close\\(\\); p.stop\\(\\); print\\('Screenshot saved'\\)\")",
+      "Bash(python -m http.server 8080)"
     ]
   }
 }

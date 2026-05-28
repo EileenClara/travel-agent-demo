@@ -6,7 +6,7 @@
 
 ```bash
 npx http-server -p 8080
-# 浏览器打开 http://localhost:8080/agent_demo04.html
+# 浏览器打开 http://localhost:8080/index.html
 ```
 
 首次使用需点击右上角 ⚙ 设置 DashScope API Key（阿里云百炼平台申请）。
@@ -74,7 +74,7 @@ npx http-server -p 8080
 
 | 文件 | 说明 |
 |------|------|
-| `agent_demo04.html` | 主应用（当前版本 v5，含所有 CSS/JS） |
+| `index.html` | 主应用（当前版本 v5，含所有 CSS/JS） |
 | `agent_demo03.html` | 上一版本 |
 | `agent_demo01.py` / `agent_demo02.py` | Python 早期原型 |
 | `test_verify_all.py` | Playwright 端到端测试 |
