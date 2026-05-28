@@ -4,12 +4,7 @@
 
 ## 快速开始
 
-```bash
-npx http-server -p 8080
-# 浏览器打开 http://localhost:8080/index.html
-```
-
-首次使用需点击右上角 ⚙ 设置 DashScope API Key（阿里云百炼平台申请）。
+直接访问：https://eileenclara.github.io/travel-agent-demo
 
 ## 功能
 
